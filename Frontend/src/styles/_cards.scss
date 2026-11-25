@@ -1,0 +1,117 @@
+@use 'mixins' as *;
+
+.card {
+  min-width: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-border);
+
+  @include up(md) {
+    padding: 14px 20px;
+  }
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+
+  .count {
+    font-weight: 500;
+    color: var(--c-text-3);
+  }
+}
+
+.card-subtitle {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+}
+
+.card-body {
+  padding: 16px;
+
+  @include up(md) {
+    padding: 20px;
+  }
+}
+
+.card-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--c-border);
+
+  @include up(md) {
+    padding: 12px 20px;
+  }
+}
+
+// Vertical rhythm for page content.
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Chip (non-interactive label, e.g. category on product details)
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  background: var(--c-surface-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+  white-space: nowrap;
+}
+
+// Selectable chip (checkbox styled as pill). Used by the variant generator.
+.chip-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 999px;
+  background: var(--c-surface);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    @include visually-hidden;
+  }
+
+  &:hover {
+    background: var(--c-surface-hover);
+  }
+
+  &:has(input:checked) {
+    border-color: var(--c-primary);
+    background: var(--c-primary-soft);
+    color: var(--c-primary-text);
+    font-weight: 500;
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+  }
+}

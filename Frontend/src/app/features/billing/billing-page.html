@@ -1,0 +1,392 @@
+@let totals = store.totals();
+@let settlement = store.settlement();
+<app-page-header
+  description="Scan a barcode or type an item name, collect payment and print the bill."
+>
+  <p headerMeta class="shortcuts">
+    <app-icon name="keyboard" />
+    <span><kbd>F2</kbd> Scan</span>
+    <span><kbd>F4</kbd> Customer</span>
+    <span><kbd>F8</kbd> Save</span>
+    <span><kbd>F9</kbd> Save &amp; print</span>
+  </p>
+  <button
+    type="button"
+    class="btn btn-secondary"
+    [disabled]="!available"
+    (click)="showTodaysBills.set(true)"
+  >
+    <app-icon name="clock-history" /> Today's bills
+  </button>
+</app-page-header>
+
+@if (!available) {
+  <div class="alert alert-warning notice" role="alert">
+    <app-icon name="exclamation-triangle-fill" />
+    <span>Billing needs the Fashion server. The app is running on demo data in this browser.</span>
+  </div>
+}
+@if (shopNameMissing()) {
+  <div class="alert alert-info notice" role="note">
+    <app-icon name="info-circle-fill" />
+    <span>
+      The shop name is not set, so bills print without it. An administrator can add it in
+      <a routerLink="/settings">Settings → Shop profile</a>.
+    </span>
+  </div>
+}
+@if (lastInvoice(); as saved) {
+  <div class="saved-bar" role="status">
+    <app-icon name="check-circle-fill" class="saved-icon" />
+    <span class="grow">
+      Bill <b class="mono">{{ saved.invoiceNo }}</b> saved · ₹{{
+        saved.grandTotal | number: '1.2-2'
+      }}
+      @if (saved.changeReturned) {
+        · <b>Change ₹{{ saved.changeReturned | number: '1.2-2' }}</b>
+      }
+    </span>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="print(saved)">
+      <app-icon name="printer" /> {{ lastPrinted() ? 'Print again' : 'Print' }}
+    </button>
+    <button
+      type="button"
+      class="btn btn-ghost btn-icon btn-sm"
+      aria-label="Dismiss"
+      (click)="lastInvoice.set(null)"
+    >
+      <app-icon name="x-lg" />
+    </button>
+  </div>
+}
+
+<div class="billing-layout">
+  <section class="card bill-panel" aria-label="Bill items">
+    <div class="scan-bar">
+      <app-item-search (picked)="addItem($event)" />
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table bill-table">
+        <thead>
+          <tr>
+            <th class="col-no">#</th>
+            <th class="col-item">Item</th>
+            <th class="text-end col-mrp">MRP</th>
+            <th class="text-end">Rate</th>
+            <th class="text-center">Qty</th>
+            <th class="text-end">GST</th>
+            <th class="text-end">Disc %</th>
+            <th class="text-end">Amount</th>
+            <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of store.lines(); track line.key; let index = $index) {
+            <tr
+              [attr.data-line-key]="line.key"
+              [class.flash-odd]="line.bump % 2 === 1"
+              [class.flash-even]="line.bump % 2 === 0"
+            >
+              <td class="col-no text-muted">{{ index + 1 }}</td>
+              <td class="col-item">
+                <div class="item-name">{{ line.item.productName }}</div>
+                @if (itemDetails(line.item); as details) {
+                  <div class="item-details">{{ details }}</div>
+                }
+                <div class="item-codes mono">
+                  {{ line.item.sku }}
+                  @if (line.item.barcode && line.item.barcode !== line.item.sku) {
+                    · {{ line.item.barcode }}
+                  }
+                </div>
+              </td>
+              <td class="text-end text-muted nowrap col-mrp">
+                {{ line.item.mrp | number: '1.2-2' }}
+              </td>
+              <td class="text-end nowrap">
+                {{ line.item.unitPrice | number: '1.2-2' }}
+                <div class="mrp-inline">MRP {{ line.item.mrp | number: '1.2-2' }}</div>
+              </td>
+              <td class="text-center">
+                <div class="qty">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity <= 1"
+                    [attr.aria-label]="'One less ' + lineLabel(line)"
+                    (click)="store.step(line.key, -1)"
+                  >
+                    <app-icon name="dash-lg" />
+                  </button>
+                  <input
+                    #qty
+                    class="form-control qty-input"
+                    type="text"
+                    [attr.inputmode]="line.allowDecimals ? 'decimal' : 'numeric'"
+                    autocomplete="off"
+                    [value]="line.quantity"
+                    [attr.aria-label]="'Quantity of ' + lineLabel(line)"
+                    [title]="line.allowDecimals ? 'Metres — decimals allowed' : ''"
+                    (focus)="qty.select()"
+                    (change)="commitQuantity(line, qty)"
+                    (keydown.enter)="commitAndScan(qty)"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity >= maxQuantity"
+                    [attr.aria-label]="'One more ' + lineLabel(line)"
+                    (click)="store.step(line.key, 1)"
+                  >
+                    <app-icon name="plus-lg" />
+                  </button>
+                </div>
+                @if (line.item.stock !== undefined && line.quantity > line.item.stock) {
+                  <div class="stock-warning" role="status">
+                    <app-icon name="exclamation-triangle-fill" />
+                    {{
+                      line.item.stock > 0
+                        ? 'Only ' + (line.item.stock | number: '1.0-3') + ' in stock'
+                        : 'Not in stock'
+                    }}
+                  </div>
+                }
+              </td>
+              <td class="text-end nowrap" [attr.title]="gstTitle(line)">
+                <div>{{ line.item.gstRate }}%</div>
+                <div class="xsmall text-muted">{{ line.taxAmount | number: '1.2-2' }}</div>
+              </td>
+              <td class="text-end">
+                <input
+                  #disc
+                  class="form-control disc-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0"
+                  [value]="line.discountPercent || ''"
+                  [attr.aria-label]="'Discount percent for ' + lineLabel(line)"
+                  (focus)="disc.select()"
+                  (change)="commitDiscount(line, disc)"
+                  (keydown.enter)="commitAndScan(disc)"
+                />
+              </td>
+              <td class="text-end nowrap">
+                <div class="fw-600">{{ line.amounts.lineTotal | number: '1.2-2' }}</div>
+                @if (line.amounts.discountAmount) {
+                  <div class="xsmall text-success">
+                    −{{ line.amounts.discountAmount | number: '1.2-2' }}
+                  </div>
+                }
+              </td>
+              <td class="col-remove text-end">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon btn-sm is-danger"
+                  [attr.aria-label]="'Remove ' + lineLabel(line)"
+                  title="Remove"
+                  (click)="removeLine(line)"
+                >
+                  <app-icon name="trash3" />
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="9">
+                <div class="empty">
+                  <app-icon name="upc-scan" class="empty-icon" />
+                  <p class="fw-600">Scan a barcode to start the bill</p>
+                  <p class="small text-muted">
+                    Or type an item name, SKU or design number and pick it from the list.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="bill-side" aria-label="Bill summary">
+    <section class="card side-card">
+      <h2 class="side-title"><app-icon name="person" /> Customer <kbd>F4</kbd></h2>
+      <app-customer-picker (done)="saveButton.focus()" />
+    </section>
+
+    <section class="card side-card">
+      <dl class="totals">
+        <div class="t-row">
+          <dt>Items {{ totals.itemCount }} · Qty {{ totals.totalQuantity }}</dt>
+          <dd>{{ totals.grossAmount | number: '1.2-2' }}</dd>
+        </div>
+        @if (totals.discountTotal) {
+          <div class="t-row text-success">
+            <dt>Discount</dt>
+            <dd>−{{ totals.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div class="t-row t-muted">
+          <dt>Taxable value</dt>
+          <dd>{{ totals.taxableTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (store.supplyType() === 'inter') {
+          <div class="t-row t-muted">
+            <dt>IGST</dt>
+            <dd>{{ totals.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+        } @else {
+          <div class="t-row t-muted">
+            <dt>CGST</dt>
+            <dd>{{ totals.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div class="t-row t-muted">
+            <dt>SGST</dt>
+            <dd>{{ totals.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        @if (totals.roundOff) {
+          <div class="t-row t-muted">
+            <dt>Round off</dt>
+            <dd>{{ totals.roundOff > 0 ? '+' : '' }}{{ totals.roundOff | number: '1.2-2' }}</dd>
+          </div>
+        }
+      </dl>
+      <div class="grand" aria-live="polite">
+        <span>Net payable</span>
+        <strong>₹{{ totals.grandTotal | number: '1.2-2' }}</strong>
+      </div>
+      <p class="xsmall text-muted">Prices include GST.</p>
+    </section>
+
+    <section class="card side-card" [formGroup]="paymentForm">
+      <h2 class="side-title"><app-icon name="cash-coin" /> Payment</h2>
+      <app-segmented-control
+        class="payment-modes"
+        formControlName="mode"
+        ariaLabel="Payment mode"
+        [options]="paymentOptions"
+      />
+
+      @switch (store.paymentChoice()) {
+        @case ('cash') {
+          <label class="field pay-field">
+            <span class="field-label">Cash received</span>
+            <input
+              class="form-control amount-input"
+              type="text"
+              inputmode="decimal"
+              autocomplete="off"
+              formControlName="cash"
+              [placeholder]="'Exact ' + (totals.grandTotal | number: '1.0-2')"
+              (keydown.enter)="$event.preventDefault(); save()"
+            />
+          </label>
+        }
+        @case ('split') {
+          <div class="split" formGroupName="split">
+            @for (split of splitModes; track split.mode) {
+              <label class="split-row">
+                <span>{{ split.label }}</span>
+                <input
+                  class="form-control amount-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0"
+                  [formControlName]="split.mode"
+                />
+              </label>
+            }
+          </div>
+        }
+        @default {
+          <label class="field pay-field">
+            <span class="field-label">
+              {{ store.paymentChoice() === 'upi' ? 'UPI transaction ID' : 'Card last digits' }}
+              <span class="text-muted">(optional)</span>
+            </span>
+            <input
+              class="form-control mono"
+              maxlength="60"
+              autocomplete="off"
+              formControlName="reference"
+              (keydown.enter)="$event.preventDefault(); save()"
+            />
+          </label>
+        }
+      }
+
+      @if (!store.isEmpty()) {
+        @if (settlement.ok) {
+          @if (settlement.changeReturned > 0) {
+            <p class="change">
+              Change to return <strong>₹{{ settlement.changeReturned | number: '1.2-2' }}</strong>
+            </p>
+          }
+        } @else if (store.paymentChoice() === 'split') {
+          <p class="change is-short">
+            Remaining <strong>₹{{ store.splitRemaining() | number: '1.2-2' }}</strong>
+          </p>
+        } @else {
+          <p class="change is-short">{{ settlement.message }}</p>
+        }
+      }
+
+      @if (saveError(); as message) {
+        <div class="alert alert-danger save-error" role="alert">
+          <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+        </div>
+      }
+
+      <div class="save-actions">
+        <button
+          type="button"
+          class="btn btn-secondary save-button"
+          title="Save the bill without printing (F8)"
+          [disabled]="store.isEmpty() || saving() || !available"
+          (click)="save(false)"
+        >
+          @if (saving() === 'save') {
+            <span class="spinner" aria-hidden="true"></span> Saving…
+          } @else {
+            <app-icon name="save" /> Save <kbd>F8</kbd>
+          }
+        </button>
+        <button
+          #saveButton
+          type="button"
+          class="btn btn-primary save-button"
+          title="Save the bill and print it (F9)"
+          [disabled]="store.isEmpty() || saving() || !available"
+          (click)="save(true)"
+        >
+          @if (saving() === 'print') {
+            <span class="spinner" aria-hidden="true"></span> Saving…
+          } @else {
+            <app-icon name="printer" /> Save &amp; Print <kbd class="kbd-on-primary">F9</kbd>
+          }
+        </button>
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost is-danger btn-block btn-sm clear-button"
+        [disabled]="store.isEmpty() || saving()"
+        (click)="clearBill()"
+      >
+        <app-icon name="trash3" /> Clear bill
+      </button>
+    </section>
+  </aside>
+</div>
+
+@if (receipt(); as bill) {
+  <app-receipt [invoice]="bill" />
+}
+@if (showTodaysBills()) {
+  <app-todays-bills (closed)="showTodaysBills.set(false)" (print)="reprintFromList($event)" />
+}

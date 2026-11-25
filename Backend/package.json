@@ -1,0 +1,44 @@
+{
+  "name": "fashion-backend",
+  "version": "0.1.0",
+  "description": "Fashion — dress shop management software: REST API (Express + PostgreSQL)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/server.js",
+    "typecheck": "tsc --noEmit",
+    "db:create": "tsx database/create-database.ts",
+    "db:migrate": "tsx database/migrations/migrate.ts",
+    "migrate": "npm run db:migrate",
+    "db:seed": "tsx database/seeds/seed.ts",
+    "db:setup": "npm run db:create && npm run db:migrate && npm run db:seed",
+    "db:migrate:prod": "node dist/database/migrations/migrate.js",
+    "test": "tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"database/**/*.ts\" \"tests/**/*.ts\"",
+    "user:reset-password": "tsx database/scripts/reset-password.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.1",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/swagger-ui-express": "^4.1.8",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

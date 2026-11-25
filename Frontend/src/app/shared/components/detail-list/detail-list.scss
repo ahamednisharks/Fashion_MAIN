@@ -1,0 +1,33 @@
+@use 'mixins' as *;
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px 24px;
+
+  @include up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.detail-item {
+  min-width: 0;
+
+  &.is-full {
+    grid-column: 1 / -1;
+  }
+
+  dt {
+    margin-bottom: 3px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+  }
+
+  dd {
+    color: var(--c-text);
+    overflow-wrap: anywhere;
+  }
+}

@@ -1,0 +1,341 @@
+<app-page-header
+  [heading]="heading()"
+  description="Order stock from a supplier. Rates are before GST — GST is added on top. Saving a PO does not change stock."
+>
+  <a routerLink="/purchase/orders" class="btn btn-secondary">
+    <app-icon name="arrow-left" /> All purchase orders
+  </a>
+</app-page-header>
+
+@if (loadError(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the purchase order"
+      [message]="message"
+      (retry)="start(id())"
+    />
+  </section>
+} @else if (loading()) {
+  <section class="card card-body">
+    <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+  </section>
+} @else if (locked() && existing(); as po) {
+  <section class="card card-body locked">
+    <app-icon name="lock" class="locked-icon" />
+    <div>
+      <p class="fw-600">{{ po.poNo }} can no longer be changed.</p>
+      <p class="small text-muted">Only open purchase orders with nothing received can be edited.</p>
+    </div>
+    <a class="btn btn-secondary" [routerLink]="['/purchase/orders', po.id]">View PO</a>
+  </section>
+} @else {
+  <!-- Header -->
+  <section class="card po-head" aria-label="Purchase order details">
+    <div class="field supplier-field">
+      <span class="field-label">Supplier <span class="req">*</span></span>
+      <app-supplier-picker [invalid]="attempted() && !store.supplier()" (chosen)="focusItems()" />
+    </div>
+    <div class="head-side">
+      <div class="field">
+        <span class="field-label">PO No</span>
+        <div class="po-number">
+          @if (existing(); as po) {
+            <span class="mono fw-600">{{ po.poNo }}</span>
+          } @else if (nextNumber(); as next) {
+            <span class="mono fw-600">{{ next }}</span>
+            <span class="xsmall text-muted">given on save</span>
+          } @else {
+            <span class="text-muted">Given on save</span>
+          }
+        </div>
+      </div>
+      <label class="field">
+        <span class="field-label">PO date <span class="req">*</span></span>
+        <input
+          #poDate
+          type="date"
+          class="form-control"
+          [value]="store.poDate()"
+          [max]="today"
+          [attr.aria-invalid]="attempted() && !store.poDate() ? true : null"
+          (change)="setPoDate(poDate.value)"
+        />
+      </label>
+      <label class="field">
+        <span class="field-label">Expected by</span>
+        <input
+          #expected
+          type="date"
+          class="form-control"
+          [value]="store.expectedDate()"
+          [min]="store.poDate()"
+          [attr.aria-invalid]="
+            store.expectedDate() && store.expectedDate() < store.poDate() ? true : null
+          "
+          (change)="setExpectedDate(expected.value)"
+        />
+      </label>
+    </div>
+  </section>
+
+  <!-- Items -->
+  <section class="card items-card" aria-label="Items to order">
+    <div class="scan-bar">
+      <app-item-search
+        purpose="ordered"
+        rateLabel="Buy rate"
+        [rateOf]="purchaseRate"
+        (picked)="addItem($event)"
+      />
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table po-table">
+        <thead>
+          <tr>
+            <th class="col-no">#</th>
+            <th>Item</th>
+            <th class="hide-below-xl">HSN</th>
+            <th class="text-center">Qty</th>
+            <th class="text-end">Rate (₹)</th>
+            <th class="text-end">Disc %</th>
+            <th class="text-end">GST</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of store.lines(); track line.key; let index = $index) {
+            <tr
+              [attr.data-line-key]="line.key"
+              [class.flash-odd]="line.bump % 2 === 1"
+              [class.flash-even]="line.bump % 2 === 0 && line.bump > 0"
+            >
+              <td class="col-no text-muted">{{ index + 1 }}</td>
+              <td class="col-item">
+                <div class="item-name">{{ line.item.productName }}</div>
+                @if (itemDetails(line.item); as details) {
+                  <div class="item-details">{{ details }}</div>
+                }
+                <div class="item-codes mono">{{ line.item.sku }}</div>
+              </td>
+              <td class="mono small hide-below-xl">{{ line.item.hsnCode || '—' }}</td>
+              <td class="text-center">
+                <div class="qty">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity <= 1"
+                    [attr.aria-label]="'One less ' + lineLabel(line)"
+                    (click)="store.step(line.key, -1)"
+                  >
+                    <app-icon name="dash-lg" />
+                  </button>
+                  <input
+                    #qty
+                    class="form-control qty-input"
+                    type="text"
+                    [attr.inputmode]="line.allowDecimals ? 'decimal' : 'numeric'"
+                    autocomplete="off"
+                    [value]="line.quantity"
+                    [attr.aria-label]="'Quantity of ' + lineLabel(line)"
+                    [attr.aria-invalid]="fieldError('qty:' + line.key) ? true : null"
+                    [title]="line.allowDecimals ? 'Metres — decimals allowed' : ''"
+                    (focus)="qty.select()"
+                    (change)="commitQuantity(line, qty)"
+                    (keydown.enter)="commitAndScan(qty)"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity >= maxQuantity"
+                    [attr.aria-label]="'One more ' + lineLabel(line)"
+                    (click)="store.step(line.key, 1)"
+                  >
+                    <app-icon name="plus-lg" />
+                  </button>
+                </div>
+                @if (fieldError('qty:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                }
+              </td>
+              <td class="text-end">
+                <input
+                  #rate
+                  class="form-control rate-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="Rate"
+                  [value]="line.rate === null ? '' : (line.rate | number: '1.2-2' : 'en-US')"
+                  [attr.aria-label]="'Purchase rate of ' + lineLabel(line)"
+                  [attr.aria-invalid]="
+                    fieldError('rate:' + line.key) || (attempted() && !line.rate) ? true : null
+                  "
+                  (focus)="rate.select()"
+                  (change)="commitRate(line, rate)"
+                  (keydown.enter)="commitAndScan(rate)"
+                />
+                @if (fieldError('rate:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                }
+              </td>
+              <td class="text-end">
+                <input
+                  #disc
+                  class="form-control disc-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0"
+                  [value]="line.discountPercent || ''"
+                  [attr.aria-label]="'Discount percent for ' + lineLabel(line)"
+                  [attr.aria-invalid]="fieldError('disc:' + line.key) ? true : null"
+                  (focus)="disc.select()"
+                  (change)="commitDiscount(line, disc)"
+                  (keydown.enter)="commitAndScan(disc)"
+                />
+                @if (fieldError('disc:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                }
+              </td>
+              <td class="text-end nowrap">
+                <div>{{ line.item.gstRate }}%</div>
+                <div class="xsmall text-muted">{{ line.taxAmount | number: '1.2-2' }}</div>
+              </td>
+              <td class="text-end nowrap">
+                <div class="fw-600">{{ line.amounts.lineTotal | number: '1.2-2' }}</div>
+                @if (line.amounts.discountAmount) {
+                  <div class="xsmall text-success">
+                    −{{ line.amounts.discountAmount | number: '1.2-2' }}
+                  </div>
+                }
+              </td>
+              <td class="col-remove text-end">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon btn-sm is-danger"
+                  [attr.aria-label]="'Remove ' + lineLabel(line)"
+                  title="Remove"
+                  (click)="removeLine(line)"
+                >
+                  <app-icon name="trash3" />
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="9">
+                <div class="empty">
+                  <app-icon name="upc-scan" class="empty-icon" />
+                  <p class="fw-600">Scan or search the items to order</p>
+                  <p class="small text-muted">
+                    The rate comes from the product's purchase price — change it if the supplier
+                    quoted differently.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Notes + totals -->
+  <div class="po-bottom">
+    <section class="card card-body">
+      <label class="field">
+        <span class="field-label">Notes / terms</span>
+        <textarea
+          #notes
+          class="form-control notes-input"
+          rows="4"
+          maxlength="500"
+          placeholder="Delivery instructions, payment terms… (printed on the PO)"
+          [value]="store.notes()"
+          (input)="setNotes(notes.value)"
+        ></textarea>
+        <span class="field-hint">{{ store.notes().length }}/500</span>
+      </label>
+    </section>
+
+    <section class="card card-body totals" aria-label="Totals">
+      @let t = store.totals();
+      <dl>
+        <div>
+          <dt>Items · Quantity</dt>
+          <dd>{{ t.itemCount }} · {{ t.totalQuantity | number: '1.0-3' }}</dd>
+        </div>
+        <div>
+          <dt>Gross</dt>
+          <dd>{{ t.grossAmount | number: '1.2-2' }}</dd>
+        </div>
+        @if (t.discountTotal) {
+          <div>
+            <dt>Discount</dt>
+            <dd class="text-success">−{{ t.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Taxable value</dt>
+          <dd>{{ t.taxableTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (store.supplyType() === 'inter') {
+          <div>
+            <dt>IGST</dt>
+            <dd>{{ t.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+        } @else {
+          <div>
+            <dt>CGST</dt>
+            <dd>{{ t.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>SGST</dt>
+            <dd>{{ t.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Round-off</dt>
+          <dd>{{ t.roundOff | number: '1.2-2' }}</dd>
+        </div>
+        <div class="grand">
+          <dt>PO total</dt>
+          <dd>₹{{ t.grandTotal | number: '1.2-2' }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <div class="form-actions-bar">
+    <span class="form-actions-note">
+      @if (saveError(); as message) {
+        <span class="text-danger" role="alert">
+          <app-icon name="exclamation-circle" /> {{ message }}
+        </span>
+      } @else if (store.hasUnsavedChanges()) {
+        <app-icon name="exclamation-circle" /> Unsaved changes · <kbd>F2</kbd> scan ·
+        <kbd>Ctrl</kbd>+<kbd>S</kbd> save
+      }
+    </span>
+    <a
+      class="btn btn-secondary"
+      [routerLink]="existing() ? ['/purchase/orders', existing()!.id] : '/purchase/orders'"
+    >
+      Cancel
+    </a>
+    <button type="button" class="btn btn-secondary" [disabled]="saving()" (click)="save(true)">
+      <app-icon name="printer" /> Save &amp; Print
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(false)">
+      @if (saving()) {
+        <span class="spinner" aria-hidden="true"></span> Saving…
+      } @else {
+        <app-icon name="check-circle" /> {{ isEdit() ? 'Save changes' : 'Save PO' }}
+      }
+    </button>
+  </div>
+}

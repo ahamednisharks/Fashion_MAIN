@@ -1,0 +1,39 @@
+// Adds to ../orders/po-view-page.scss (shared layout of the purchase documents).
+
+.doc-title dd a {
+  color: inherit;
+}
+
+.doc-totals .bill-row {
+  font-size: var(--fs-sm);
+
+  dt {
+    color: var(--c-text-3);
+  }
+}
+
+.bill-off {
+  margin-left: 4px;
+  color: var(--c-warning);
+}
+
+.bill-ok {
+  margin-left: 4px;
+  color: var(--c-success);
+}
+
+@media print {
+  // Eleven columns on A4: a little tighter than the PO.
+  .pe-doc-table {
+    font-size: 11px;
+
+    th,
+    td {
+      padding: 4px 4px;
+    }
+  }
+
+  .doc-title dd a {
+    text-decoration: none;
+  }
+}

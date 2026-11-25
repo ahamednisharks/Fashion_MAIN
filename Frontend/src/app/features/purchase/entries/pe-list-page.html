@@ -1,0 +1,180 @@
+<app-page-header
+  description="Goods received from suppliers, entered from their invoices — against a purchase order or directly."
+>
+  <a routerLink="/purchase/entries/new" class="btn btn-primary">
+    <app-icon name="plus-lg" /> New Purchase Entry
+  </a>
+</app-page-header>
+
+<section class="card entries-card" aria-label="Purchase entries">
+  <app-list-toolbar
+    placeholder="Search PE no, supplier, invoice no or PO no"
+    [search]="list.query().search"
+    [showStatus]="false"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (clear)="list.clearFilters()"
+  >
+    <select
+      #stateSelect
+      class="form-control filter-select"
+      aria-label="Filter by status"
+      (change)="list.setFilter('state', stateSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('state')">All statuses</option>
+      @for (option of statusOptions; track option.value) {
+        <option [value]="option.value" [selected]="list.filterValue('state') === option.value">
+          {{ option.label }}
+        </option>
+      }
+    </select>
+    <input
+      #fromDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="Received from"
+      title="Received from"
+      [value]="list.filterValue('from')"
+      [max]="list.filterValue('to') || null"
+      (change)="list.setFilter('from', fromDate.value)"
+    />
+    <input
+      #toDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="Received to"
+      title="Received to"
+      [value]="list.filterValue('to')"
+      [min]="list.filterValue('from') || null"
+      (change)="list.setFilter('to', toDate.value)"
+    />
+  </app-list-toolbar>
+
+  @if (list.error(); as message) {
+    <app-error-state
+      heading="Couldn't load purchase entries"
+      [message]="message"
+      (retry)="list.reload()"
+    />
+  } @else if (!list.loading() && !list.items().length) {
+    @if (list.hasFilters()) {
+      <app-empty-state icon="search" heading="No purchase entries match these filters">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="list.clearFilters()">
+          Clear filters
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="box-arrow-in-right"
+        heading="No purchase entries yet"
+        message="When goods arrive, enter the supplier's invoice here — or use Receive goods on a purchase order."
+      >
+        <a routerLink="/purchase/entries/new" class="btn btn-primary btn-sm">
+          <app-icon name="plus-lg" /> New Purchase Entry
+        </a>
+      </app-empty-state>
+    }
+  } @else {
+    <div class="table-wrap" [attr.aria-busy]="list.loading()">
+      <table class="data-table entries-table">
+        <thead>
+          <tr>
+            <th>PE No</th>
+            <th>Received</th>
+            <th>Supplier</th>
+            <th>Supplier invoice</th>
+            <th class="hide-below-lg">PO</th>
+            <th class="text-end">Items · Qty</th>
+            <th class="text-end">Amount (₹)</th>
+            <th>Status</th>
+            <th><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (entry of list.items(); track entry.id) {
+            <tr [class.is-cancelled]="entry.status === 'cancelled'">
+              <td class="nowrap">
+                <a class="cell-link mono" [routerLink]="['/purchase/entries', entry.id]">{{
+                  entry.peNo
+                }}</a>
+              </td>
+              <td class="nowrap">{{ entry.entryDate | date: 'dd MMM y' }}</td>
+              <td>{{ entry.supplierName }}</td>
+              <td class="nowrap">
+                <span class="mono">{{ entry.supplierInvoiceNo }}</span>
+                <div class="xsmall text-muted">
+                  {{ entry.supplierInvoiceDate | date: 'dd MMM y' }}
+                </div>
+              </td>
+              <td class="nowrap hide-below-lg">
+                @if (entry.purchaseOrderId) {
+                  <a class="mono" [routerLink]="['/purchase/orders', entry.purchaseOrderId]">{{
+                    entry.poNo
+                  }}</a>
+                } @else {
+                  <span class="text-muted">Direct</span>
+                }
+              </td>
+              <td class="text-end nowrap">
+                {{ entry.itemCount }} · {{ entry.totalQuantity | number: '1.0-3' }}
+              </td>
+              <td class="text-end fw-600 nowrap">{{ entry.grandTotal | number: '1.2-2' }}</td>
+              <td>
+                <span [class]="'badge ' + statusBadge(entry.status)">{{
+                  statusLabels[entry.status]
+                }}</span>
+              </td>
+              <td class="text-end nowrap">
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="View"
+                  [attr.aria-label]="'View ' + entry.peNo"
+                  [routerLink]="['/purchase/entries', entry.id]"
+                >
+                  <app-icon name="eye" />
+                </a>
+                @if (entry.status === 'posted') {
+                  <a
+                    class="btn btn-ghost btn-icon btn-sm"
+                    title="Edit"
+                    [attr.aria-label]="'Edit ' + entry.peNo"
+                    [routerLink]="['/purchase/entries', entry.id, 'edit']"
+                  >
+                    <app-icon name="pencil-square" />
+                  </a>
+                }
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Download PDF"
+                  [attr.aria-label]="'Download PDF of ' + entry.peNo"
+                  [routerLink]="['/purchase/entries', entry.id]"
+                  [queryParams]="{ pdf: 1 }"
+                >
+                  <app-icon name="download" />
+                </a>
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Print"
+                  [attr.aria-label]="'Print ' + entry.peNo"
+                  [routerLink]="['/purchase/entries', entry.id]"
+                  [queryParams]="{ print: 1 }"
+                >
+                  <app-icon name="printer" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div class="card-footer">
+    <app-pagination
+      [page]="list.query().page"
+      [pageSize]="list.query().pageSize"
+      [total]="list.total()"
+      (pageChange)="list.setPage($event)"
+      (pageSizeChange)="list.setPageSize($event)"
+    />
+  </div>
+</section>

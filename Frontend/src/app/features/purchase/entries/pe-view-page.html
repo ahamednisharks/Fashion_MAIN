@@ -1,0 +1,304 @@
+@if (error(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the purchase entry"
+      [message]="message"
+      (retry)="load(id())"
+    >
+      <a routerLink="/purchase/entries" class="btn btn-secondary btn-sm">All purchase entries</a>
+    </app-error-state>
+  </section>
+} @else if (loading() && !entry()) {
+  <section class="card card-body">
+    <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+  </section>
+} @else if (entry(); as entry) {
+  <app-page-header class="no-print">
+    <a routerLink="/purchase/entries" class="btn btn-secondary">
+      <app-icon name="arrow-left" /> All purchase entries
+    </a>
+    @if (posted()) {
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        [disabled]="cancelling()"
+        (click)="cancelEntry(entry)"
+      >
+        <app-icon name="x-circle" /> Cancel entry
+      </button>
+      <a class="btn btn-secondary" [routerLink]="['/purchase/entries', entry.id, 'edit']">
+        <app-icon name="pencil-square" /> Edit
+      </a>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        [disabled]="labelling()"
+        (click)="printLabels(entry)"
+      >
+        <app-icon name="upc" /> Print labels
+      </button>
+    }
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="downloading()"
+      (click)="downloadPdf(entry)"
+    >
+      @if (downloading()) {
+        <span class="spinner" aria-hidden="true"></span> Creating PDF…
+      } @else {
+        <app-icon name="download" /> Download PDF
+      }
+    </button>
+    <button type="button" class="btn btn-primary" (click)="printEntry()">
+      <app-icon name="printer" /> Print
+    </button>
+  </app-page-header>
+
+  @if (entry.status === 'cancelled') {
+    <div class="alert alert-danger cancelled-note no-print" role="status">
+      <app-icon name="slash-circle" />
+      <span>
+        This purchase entry was cancelled
+        @if (entry.cancelledAt) {
+          on {{ entry.cancelledAt | date: 'dd MMM y, hh:mm a' }}
+        }
+        by {{ entry.updatedByName }}. It no longer counts as received.
+      </span>
+    </div>
+  }
+
+  <article class="card po-doc">
+    <!-- Buyer (shop) + document title -->
+    <header class="doc-head">
+      <div class="shop">
+        @if (logo()) {
+          <img class="shop-logo" [src]="logo()" alt="" />
+        }
+        <h1 class="shop-name">{{ shop()?.shopName || 'Your shop' }}</h1>
+        @if (shopAddress()) {
+          <p>{{ shopAddress() }}</p>
+        }
+        <p>
+          @if (shop()?.phone) {
+            Phone <span class="mono">{{ shop()?.phone }}</span>
+          }
+          @if (shop()?.gstNumber) {
+            · GSTIN <span class="mono">{{ shop()?.gstNumber }}</span>
+          }
+        </p>
+      </div>
+      <div class="doc-title">
+        <h2>PURCHASE ENTRY</h2>
+        <dl>
+          <div>
+            <dt>PE No</dt>
+            <dd class="mono fw-600">{{ entry.peNo }}</dd>
+          </div>
+          <div>
+            <dt>Received on</dt>
+            <dd>{{ entry.entryDate | date: 'dd MMM y' }}</dd>
+          </div>
+          <div>
+            <dt>Supplier invoice</dt>
+            <dd>
+              <span class="mono">{{ entry.supplierInvoiceNo }}</span> ·
+              {{ entry.supplierInvoiceDate | date: 'dd MMM y' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Against PO</dt>
+            <dd>
+              @if (entry.purchaseOrderId) {
+                <a class="mono" [routerLink]="['/purchase/orders', entry.purchaseOrderId]">{{
+                  entry.poNo
+                }}</a>
+              } @else {
+                Direct purchase
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span [class]="'badge ' + statusBadge(entry.status)">
+                {{ statusLabels[entry.status] }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <!-- Parties -->
+    <section class="parties">
+      <div>
+        <h3>Supplier</h3>
+        <p class="fw-600">{{ entry.supplierName }}</p>
+        @if (entry.supplierAddress) {
+          <p>{{ entry.supplierAddress }}</p>
+        }
+        @if (entry.supplierState) {
+          <p>{{ entry.supplierState }}</p>
+        }
+        <p>
+          Mobile <span class="mono">{{ entry.supplierMobile }}</span>
+          @if (entry.supplierGstNumber) {
+            · GSTIN <span class="mono">{{ entry.supplierGstNumber }}</span>
+          }
+        </p>
+      </div>
+      <div>
+        <h3>Received at</h3>
+        <p class="fw-600">{{ shop()?.shopName || 'Your shop' }}</p>
+        @if (shopAddress()) {
+          <p>{{ shopAddress() }}</p>
+        }
+        <p class="text-muted small">
+          {{
+            entry.supplyType === 'inter'
+              ? 'Inter-state supply — IGST'
+              : 'Intra-state supply — CGST + SGST'
+          }}
+        </p>
+      </div>
+    </section>
+
+    <!-- Lines -->
+    <div class="table-wrap">
+      <table class="data-table doc-table pe-doc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th>HSN</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Rate</th>
+            <th class="text-end">Disc %</th>
+            <th class="text-end">Taxable</th>
+            <th class="text-end">GST</th>
+            <th class="text-end">Amount</th>
+            <th class="text-end">MRP</th>
+            <th class="text-end">Sell</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of entry.items; track item.lineNo) {
+            <tr>
+              <td class="text-muted">{{ item.lineNo }}</td>
+              <td>
+                <div class="fw-600">{{ item.productName }}</div>
+                @if (itemDetails(item); as details) {
+                  <div class="small">{{ details }}</div>
+                }
+                <div class="xsmall text-muted mono">{{ item.sku }}</div>
+              </td>
+              <td class="mono small">{{ item.hsnCode || '—' }}</td>
+              <td class="text-end nowrap">
+                {{ item.quantity | number: '1.0-3' }}
+                @if (item.orderedQuantity !== null) {
+                  <div class="xsmall text-muted">
+                    PO {{ item.orderedQuantity | number: '1.0-3' }}
+                  </div>
+                } @else if (entry.purchaseOrderId) {
+                  <div class="xsmall text-muted">Not on PO</div>
+                }
+              </td>
+              <td class="text-end">{{ item.rate | number: '1.2-2' }}</td>
+              <td class="text-end">{{ item.discountPercent ? item.discountPercent : '—' }}</td>
+              <td class="text-end">{{ item.taxableValue | number: '1.2-2' }}</td>
+              <td class="text-end nowrap">
+                {{ taxOf(item) | number: '1.2-2' }}
+                <div class="xsmall text-muted">{{ item.gstRate }}%</div>
+              </td>
+              <td class="text-end fw-600">{{ item.lineTotal | number: '1.2-2' }}</td>
+              <td class="text-end">{{ item.mrp | number: '1.2-2' }}</td>
+              <td class="text-end">{{ item.sellingPrice | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Notes + totals -->
+    <section class="doc-bottom">
+      <div class="notes">
+        @if (entry.notes) {
+          <h3>Notes</h3>
+          <p class="pre-line">{{ entry.notes }}</p>
+        }
+        <p class="small text-muted">
+          {{ entry.itemCount }} {{ entry.itemCount === 1 ? 'item' : 'items' }} ·
+          {{ entry.totalQuantity | number: '1.0-3' }} total quantity · Rates exclude GST · MRP and
+          selling prices include GST
+        </p>
+      </div>
+      <dl class="doc-totals">
+        <div>
+          <dt>Gross</dt>
+          <dd>{{ entry.grossAmount | number: '1.2-2' }}</dd>
+        </div>
+        @if (entry.discountTotal) {
+          <div>
+            <dt>Discount</dt>
+            <dd>−{{ entry.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Taxable value</dt>
+          <dd>{{ entry.taxableTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (entry.supplyType === 'inter') {
+          <div>
+            <dt>IGST</dt>
+            <dd>{{ entry.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+        } @else {
+          <div>
+            <dt>CGST</dt>
+            <dd>{{ entry.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>SGST</dt>
+            <dd>{{ entry.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        @if (entry.roundOff) {
+          <div>
+            <dt>Round-off</dt>
+            <dd>{{ entry.roundOff | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div class="grand">
+          <dt>Total</dt>
+          <dd>₹{{ entry.grandTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (entry.billAmount !== null) {
+          <div class="bill-row">
+            <dt>Supplier bill</dt>
+            <dd>
+              ₹{{ entry.billAmount | number: '1.2-2' }}
+              @if (billDifference(); as difference) {
+                <span class="bill-off">
+                  ({{ difference > 0 ? '+' : '−' }}{{ absolute(difference) | number: '1.2-2' }})
+                </span>
+              } @else {
+                <span class="bill-ok">✓</span>
+              }
+            </dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <footer class="doc-foot">
+      <span class="small text-muted">
+        Entered by {{ entry.createdByName }} on {{ entry.createdAt | date: 'dd MMM y' }}
+        @if (entry.updatedByName !== entry.createdByName || entry.updatedAt !== entry.createdAt) {
+          · last changed by {{ entry.updatedByName }}
+        }
+      </span>
+      <span class="signature">Checked by</span>
+    </footer>
+  </article>
+}

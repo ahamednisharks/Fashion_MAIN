@@ -1,0 +1,49 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-backdrop);
+  background: rgba(15, 23, 42, 0.45);
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  @include up(lg) {
+    margin-left: var(--sidebar-w);
+    transition: margin-left 0.15s ease;
+  }
+}
+
+:host(.is-rail) .app-main {
+  @include up(lg) {
+    margin-left: var(--sidebar-rail-w);
+  }
+}
+
+.app-content {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 1600px;
+  padding: 16px var(--page-gutter) 24px;
+  outline: none;
+
+  @include up(md) {
+    padding-top: 20px;
+  }
+}

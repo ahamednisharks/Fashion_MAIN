@@ -1,0 +1,178 @@
+<app-page-header
+  description="Orders placed with suppliers. Goods that arrive are received against them in Purchase Entry."
+>
+  <a routerLink="/purchase/orders/new" class="btn btn-primary">
+    <app-icon name="plus-lg" /> New Purchase Order
+  </a>
+</app-page-header>
+
+<section class="card list-card" aria-label="Purchase orders">
+  <app-list-toolbar
+    placeholder="Search PO number or supplier"
+    [search]="list.query().search"
+    [showStatus]="false"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (clear)="list.clearFilters()"
+  >
+    <select
+      #stateSelect
+      class="form-control filter-select"
+      aria-label="Filter by status"
+      (change)="list.setFilter('state', stateSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('state')">All statuses</option>
+      @for (option of statusOptions; track option.value) {
+        <option [value]="option.value" [selected]="list.filterValue('state') === option.value">
+          {{ option.label }}
+        </option>
+      }
+    </select>
+    <input
+      #fromDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="PO date from"
+      title="PO date from"
+      [value]="list.filterValue('from')"
+      [max]="list.filterValue('to') || null"
+      (change)="list.setFilter('from', fromDate.value)"
+    />
+    <input
+      #toDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="PO date to"
+      title="PO date to"
+      [value]="list.filterValue('to')"
+      [min]="list.filterValue('from') || null"
+      (change)="list.setFilter('to', toDate.value)"
+    />
+  </app-list-toolbar>
+
+  @if (list.error(); as message) {
+    <app-error-state
+      heading="Couldn't load purchase orders"
+      [message]="message"
+      (retry)="list.reload()"
+    />
+  } @else if (!list.loading() && !list.items().length) {
+    @if (list.hasFilters()) {
+      <app-empty-state icon="search" heading="No purchase orders match these filters">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="list.clearFilters()">
+          Clear filters
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="cart3"
+        heading="No purchase orders yet"
+        message="Create a purchase order to order stock from a supplier."
+      >
+        <a routerLink="/purchase/orders/new" class="btn btn-primary btn-sm">
+          <app-icon name="plus-lg" /> New Purchase Order
+        </a>
+      </app-empty-state>
+    }
+  } @else {
+    <div class="table-wrap" [attr.aria-busy]="list.loading()">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>PO No</th>
+            <th>Date</th>
+            <th>Supplier</th>
+            <th class="text-end">Items · Qty</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="hide-below-lg">Expected</th>
+            <th>Status</th>
+            <th><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (po of list.items(); track po.id) {
+            <tr [class.is-cancelled]="po.status === 'cancelled'">
+              <td class="nowrap">
+                <a class="cell-link mono" [routerLink]="['/purchase/orders', po.id]">{{
+                  po.poNo
+                }}</a>
+              </td>
+              <td class="nowrap">{{ po.poDate | date: 'dd MMM y' }}</td>
+              <td>{{ po.supplierName }}</td>
+              <td class="text-end nowrap">
+                {{ po.itemCount }} · {{ po.totalQuantity | number: '1.0-3' }}
+              </td>
+              <td class="text-end fw-600 nowrap">{{ po.grandTotal | number: '1.2-2' }}</td>
+              <td class="nowrap hide-below-lg">
+                {{ po.expectedDate ? (po.expectedDate | date: 'dd MMM y') : '—' }}
+              </td>
+              <td>
+                <span [class]="'badge ' + statusBadge(po.status)">{{
+                  statusLabels[po.status]
+                }}</span>
+              </td>
+              <td class="text-end nowrap">
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="View"
+                  [attr.aria-label]="'View ' + po.poNo"
+                  [routerLink]="['/purchase/orders', po.id]"
+                >
+                  <app-icon name="eye" />
+                </a>
+                @if (isReceivable(po)) {
+                  <a
+                    class="btn btn-ghost btn-icon btn-sm"
+                    title="Receive goods"
+                    [attr.aria-label]="'Receive goods against ' + po.poNo"
+                    routerLink="/purchase/entries/new"
+                    [queryParams]="{ po: po.id }"
+                  >
+                    <app-icon name="box-arrow-in-right" />
+                  </a>
+                }
+                @if (isOpen(po)) {
+                  <a
+                    class="btn btn-ghost btn-icon btn-sm"
+                    title="Edit"
+                    [attr.aria-label]="'Edit ' + po.poNo"
+                    [routerLink]="['/purchase/orders', po.id, 'edit']"
+                  >
+                    <app-icon name="pencil-square" />
+                  </a>
+                }
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Download PDF"
+                  [attr.aria-label]="'Download PDF of ' + po.poNo"
+                  [routerLink]="['/purchase/orders', po.id]"
+                  [queryParams]="{ pdf: 1 }"
+                >
+                  <app-icon name="download" />
+                </a>
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Print"
+                  [attr.aria-label]="'Print ' + po.poNo"
+                  [routerLink]="['/purchase/orders', po.id]"
+                  [queryParams]="{ print: 1 }"
+                >
+                  <app-icon name="printer" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div class="card-footer">
+    <app-pagination
+      [page]="list.query().page"
+      [pageSize]="list.query().pageSize"
+      [total]="list.total()"
+      (pageChange)="list.setPage($event)"
+      (pageSizeChange)="list.setPageSize($event)"
+    />
+  </div>
+</section>

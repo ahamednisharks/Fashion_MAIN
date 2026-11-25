@@ -1,0 +1,160 @@
+@switch (state()) {
+  @case ('loading') {
+    <section class="card" aria-busy="true" aria-label="Loading product">
+      <div class="card-body loading-body">
+        <span class="skeleton" style="width: 45%; height: 18px"></span>
+        <span class="skeleton" style="width: 25%"></span>
+        <span class="skeleton" style="width: 60%"></span>
+      </div>
+    </section>
+  }
+  @case ('error') {
+    <section class="card">
+      <app-error-state [message]="loadError()" (retry)="load()">
+        <a routerLink="/masters/products" class="btn btn-ghost btn-sm">Back to products</a>
+      </app-error-state>
+    </section>
+  }
+  @case ('not-found') {
+    <section class="card">
+      <app-empty-state icon="box-seam" heading="Product not found" [message]="loadError()">
+        <a routerLink="/masters/products" class="btn btn-secondary btn-sm">Back to products</a>
+      </app-empty-state>
+    </section>
+  }
+  @default {
+    @if (product(); as product) {
+      <app-page-header>
+        <a routerLink="/masters/products" class="btn btn-ghost"
+          ><app-icon name="arrow-left" /> Products</a
+        >
+        <button type="button" class="btn btn-outline-danger" (click)="delete()">
+          <app-icon name="trash3" /> Delete
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="toggleStatus()">
+          <app-icon [name]="product.status === 'active' ? 'toggle-on' : 'toggle-off'" />
+          {{ product.status === 'active' ? 'Deactivate' : 'Activate' }}
+        </button>
+        <a class="btn btn-primary" [routerLink]="['/masters/products', product.id, 'edit']">
+          <app-icon name="pencil-square" /> Edit
+        </a>
+      </app-page-header>
+
+      <div class="page-stack">
+        <section class="card">
+          <div class="card-body summary">
+            <div class="summary-head">
+              <div class="summary-title">
+                <h2 class="product-name">{{ product.name }}</h2>
+                <p class="mono text-muted">{{ product.code }}</p>
+              </div>
+              <app-status-badge [status]="product.status" />
+            </div>
+            <div class="summary-chips">
+              <span class="chip"><app-icon name="tags" /> {{ categoryName() }}</span>
+              <span class="chip"><app-icon name="award" /> {{ brandName() || 'No brand' }}</span>
+              <span class="chip"><app-icon name="bag" /> {{ typeLabel() }}</span>
+              <span class="chip"
+                ><app-icon name="layers" /> {{ product.variants.length }} variants</span
+              >
+            </div>
+            @if (product.description) {
+              <p class="summary-description">{{ product.description }}</p>
+            }
+          </div>
+        </section>
+
+        <div class="detail-columns">
+          <section class="card">
+            <header class="card-header"><h3 class="card-title">Pricing &amp; tax</h3></header>
+            <div class="card-body"><app-detail-list [items]="pricing()" /></div>
+          </section>
+          <section class="card">
+            <header class="card-header"><h3 class="card-title">Identification</h3></header>
+            <div class="card-body"><app-detail-list [items]="identification()" /></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <header class="card-header">
+            <h3 class="card-title">
+              Variants <span class="count">({{ variants().length }})</span>
+            </h3>
+            <p class="card-subtitle">
+              <span class="override-dot"></span> Highlighted prices override the product price.
+            </p>
+          </header>
+          @if (variants().length === 0) {
+            <app-empty-state
+              icon="layers"
+              heading="No variants"
+              message="This product is sold using its product barcode. Edit the product to add sizes and colours."
+            />
+          } @else {
+            <div class="table-wrap">
+              <table class="data-table is-stacked">
+                <thead>
+                  <tr>
+                    <th scope="col">Design / Model</th>
+                    <th scope="col">Size</th>
+                    <th scope="col">Colour</th>
+                    <th scope="col">SKU</th>
+                    <th scope="col" class="hide-below-lg">Barcode</th>
+                    <th scope="col" class="text-end">Purchase</th>
+                    <th scope="col" class="text-end">Selling</th>
+                    <th scope="col" class="text-end">MRP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (variant of variants(); track variant.id) {
+                    <tr>
+                      <td data-label="Design / Model" class="cell-title">
+                        {{ variant.designNo || '—' }}
+                      </td>
+                      <td data-label="Size">{{ variant.sizeName }}</td>
+                      <td data-label="Colour">
+                        <span class="flex-row">
+                          <span class="swatch" [style.background]="variant.hex || null"></span
+                          >{{ variant.colorName }}
+                        </span>
+                      </td>
+                      <td data-label="SKU" class="mono">{{ variant.sku }}</td>
+                      <td data-label="Barcode" class="mono hide-below-lg">
+                        {{ variant.barcode || '—' }}
+                      </td>
+                      <td
+                        data-label="Purchase"
+                        class="text-end nowrap"
+                        [class.is-override]="variant.overrides.purchase"
+                      >
+                        {{
+                          variant.purchasePrice === null
+                            ? '—'
+                            : (variant.purchasePrice | currency: 'INR')
+                        }}
+                      </td>
+                      <td
+                        data-label="Selling"
+                        class="text-end nowrap"
+                        [class.is-override]="variant.overrides.selling"
+                      >
+                        {{ variant.sellingPrice | currency: 'INR' }}
+                      </td>
+                      <td
+                        data-label="MRP"
+                        class="text-end nowrap"
+                        [class.is-override]="variant.overrides.mrp"
+                      >
+                        {{ variant.mrp | currency: 'INR' }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      </div>
+    }
+  }
+}

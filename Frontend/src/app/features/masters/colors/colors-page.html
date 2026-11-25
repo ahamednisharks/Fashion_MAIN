@@ -1,0 +1,88 @@
+<app-page-header
+  description="Colours used in product variants. The HEX code drives the colour swatch shown across the app."
+>
+  <button type="button" class="btn btn-primary" (click)="page.openCreate()">
+    <app-icon name="plus-lg" /> Add Color
+  </button>
+</app-page-header>
+
+<section class="card list-card" aria-label="Colors">
+  <app-list-toolbar
+    placeholder="Search colours or HEX codes"
+    [search]="list.query().search"
+    [status]="list.query().status"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (statusChange)="list.setStatus($event)"
+    (clear)="list.clearFilters()"
+  />
+
+  <app-data-table
+    entityName="colours"
+    emptyMessage="Add colours such as Black, Navy Blue or Maroon to use them in product variants."
+    createLabel="Add Color"
+    [rows]="list.items()"
+    [columns]="columns"
+    [actions]="actions"
+    [loading]="list.loading()"
+    [error]="list.error()"
+    [sort]="list.query().sort"
+    [filtered]="list.hasFilters()"
+    (action)="page.onAction($event)"
+    (sortChange)="list.setSort($event)"
+    (retry)="list.reload()"
+    (clearFilters)="list.clearFilters()"
+    (create)="page.openCreate()"
+  >
+    <ng-template appCell="name" [appCellOf]="list.items()" let-color>
+      <button type="button" class="cell-link" (click)="page.openView(color)">
+        <span class="swatch" [style.background]="color.hexCode"></span>
+        {{ color.name }}
+      </button>
+    </ng-template>
+    <ng-template appCell="hexCode" [appCellOf]="list.items()" let-color>
+      <span class="mono">{{ color.hexCode }}</span>
+    </ng-template>
+  </app-data-table>
+
+  <app-pagination
+    [page]="list.query().page"
+    [pageSize]="list.query().pageSize"
+    [total]="list.total()"
+    (pageChange)="list.setPage($event)"
+    (pageSizeChange)="list.setPageSize($event)"
+  />
+</section>
+
+@if (page.dialog(); as dialog) {
+  @if (dialog.mode === 'view') {
+    <app-modal title="Colour details" [dismissible]="true" (closed)="page.close()">
+      <div class="modal-body">
+        <app-detail-list [items]="details(dialog.item)" />
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-danger footer-start"
+          (click)="page.delete(dialog.item)"
+        >
+          <app-icon name="trash3" /> Delete
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="page.close()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="page.openEdit(dialog.item)">
+          <app-icon name="pencil-square" /> Edit
+        </button>
+      </div>
+    </app-modal>
+  } @else {
+    <app-modal
+      [title]="dialog.mode === 'edit' ? 'Edit colour' : 'Add colour'"
+      (closed)="page.close()"
+    >
+      <app-color-form
+        [color]="dialog.mode === 'edit' ? dialog.item : null"
+        (saved)="page.onSaved($event)"
+      />
+    </app-modal>
+  }
+}

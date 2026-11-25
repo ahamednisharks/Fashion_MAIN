@@ -1,0 +1,38 @@
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 640px;
+  margin: 24px auto 0;
+  padding: 40px 20px;
+  text-align: center;
+
+  h2 {
+    font-size: var(--fs-lg);
+  }
+
+  p {
+    max-width: 440px;
+  }
+}
+
+.placeholder-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--c-primary-soft);
+  color: var(--c-primary);
+  font-size: 24px;
+}
+
+.placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}

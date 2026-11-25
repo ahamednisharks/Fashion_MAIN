@@ -1,0 +1,96 @@
+<div class="scan-row">
+  <div class="scan-field" [class.has-error]="error()">
+    <app-icon name="upc-scan" class="scan-icon" />
+    <input
+      #input
+      class="form-control scan-input"
+      type="text"
+      role="combobox"
+      aria-label="Scan barcode or search items"
+      aria-autocomplete="list"
+      aria-controls="item-search-list"
+      [attr.aria-expanded]="open()"
+      [attr.aria-activedescendant]="activeId()"
+      [attr.aria-invalid]="error() ? true : null"
+      aria-describedby="item-search-help"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      enterkeyhint="enter"
+      placeholder="Scan barcode or type item name / SKU / design no."
+      (input)="onInput(input.value)"
+      (keydown)="onKeydown($event)"
+      (blur)="onBlur()"
+    />
+    @if (busy()) {
+      <span class="spinner scan-spinner" aria-hidden="true"></span>
+    }
+    <kbd class="scan-kbd" aria-hidden="true">F2</kbd>
+  </div>
+  <button type="button" class="btn btn-primary scan-add" (click)="submit()">
+    <app-icon name="plus-lg" /> Add
+  </button>
+
+  @if (open()) {
+    <div class="results" id="item-search-list" role="listbox" #listbox aria-label="Matching items">
+      @if (listMode() === 'choose') {
+        <p class="results-note">Several items match — choose one:</p>
+      }
+      @if (results().length) {
+        <div class="result-row result-head" aria-hidden="true">
+          <span>Item</span>
+          <span>SKU</span>
+          <span class="hide-below-lg">Barcode</span>
+          <span class="text-end">Stock</span>
+          <span class="text-end">MRP</span>
+          <span class="text-end">{{ rateLabel() }}</span>
+        </div>
+      }
+      @for (item of results(); track trackItem(item); let index = $index) {
+        <div
+          class="result-row"
+          role="option"
+          [id]="'item-option-' + index"
+          [class.is-active]="index === active()"
+          [class.is-inactive]="item.status !== 'active'"
+          [attr.aria-selected]="index === active()"
+          (mousedown)="$event.preventDefault()"
+          (mouseenter)="active.set(index)"
+          (click)="choose(item)"
+        >
+          <span class="r-item">
+            <span class="r-name">{{ item.productName }}</span>
+            @if (itemDetails(item); as details) {
+              <span class="r-details">{{ details }}</span>
+            }
+            @if (item.status !== 'active') {
+              <span class="badge badge-muted">Inactive</span>
+            }
+          </span>
+          <span class="mono r-code">{{ item.sku }}</span>
+          <span class="mono r-code hide-below-lg">{{ item.barcode || '—' }}</span>
+          <span
+            class="text-end r-stock"
+            [class.is-out]="(item.stock ?? 0) <= 0"
+            [class.is-negative]="(item.stock ?? 0) < 0"
+            >{{ item.stock === undefined ? '—' : (item.stock | number: '1.0-3') }}</span
+          >
+          <span class="text-end text-muted">{{ item.mrp | number: '1.2-2' }}</span>
+          <span class="text-end fw-600">{{ (rateOf()(item) | number: '1.2-2') ?? '—' }}</span>
+        </div>
+      } @empty {
+        <p class="results-note">No matching items. Check the spelling or scan the barcode.</p>
+      }
+      @if (limitReached()) {
+        <p class="results-note">Showing the first {{ results().length }} — type more to narrow.</p>
+      }
+    </div>
+  }
+</div>
+<p id="item-search-help" class="scan-message" [class.is-error]="error()" aria-live="assertive">
+  @if (error(); as message) {
+    <app-icon name="exclamation-circle" /> {{ message }}
+  } @else {
+    {{ hint() }}
+  }
+</p>

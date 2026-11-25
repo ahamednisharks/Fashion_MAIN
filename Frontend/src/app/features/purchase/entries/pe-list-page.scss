@@ -1,0 +1,53 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.date-filter {
+  width: 150px;
+}
+
+.is-cancelled td {
+  color: var(--c-text-3);
+}
+
+// From tablets up the page fits the window: header, filters and pagination stay in place and
+// only the table rows scroll (column headings stick to the top of the table). Phones keep
+// normal page scrolling.
+@include up(md) {
+  :host {
+    display: flex;
+    flex-direction: column;
+    // Window minus the app header and the content area's top (20px) and bottom (24px) padding.
+    height: calc(100dvh - var(--header-h) - 44px);
+    min-height: 420px;
+  }
+
+  :host > * {
+    flex-shrink: 0;
+  }
+
+  .entries-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    > .table-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+  }
+
+  .entries-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}

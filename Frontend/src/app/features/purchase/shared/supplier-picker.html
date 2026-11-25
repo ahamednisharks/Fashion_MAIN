@@ -1,0 +1,87 @@
+@if (store.supplier(); as supplier) {
+  <div class="chosen">
+    <div class="chosen-main">
+      <span class="chosen-name">{{ supplier.name }}</span>
+      @if (supplier.address) {
+        <span class="chosen-line">{{ supplier.address }}</span>
+      }
+      <span class="chosen-line">
+        @if (supplier.state) {
+          {{ supplier.state }} ·
+        }
+        <span class="mono">{{ supplier.mobile }}</span>
+        @if (supplier.gstNumber) {
+          · GSTIN <span class="mono">{{ supplier.gstNumber }}</span>
+        } @else {
+          · No GSTIN
+        }
+      </span>
+      <span class="badge badge-info tax-badge">{{ taxLabel() }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="change()">
+      <app-icon name="pencil-square" /> Change
+    </button>
+  </div>
+} @else {
+  <div class="picker">
+    <div class="search-field">
+      <app-icon name="search" class="search-icon" />
+      <input
+        #search
+        class="form-control"
+        type="text"
+        role="combobox"
+        aria-label="Supplier"
+        aria-autocomplete="list"
+        aria-controls="supplier-list"
+        [attr.aria-expanded]="open()"
+        [attr.aria-invalid]="invalid() ? true : null"
+        [attr.aria-activedescendant]="
+          open() && results().length ? 'supplier-option-' + active() : null
+        "
+        autocomplete="off"
+        placeholder="Search supplier by name, mobile, GSTIN or city"
+        [value]="text()"
+        (input)="onInput(search.value)"
+        (focus)="open.set(true)"
+        (blur)="open.set(false)"
+        (keydown)="onKeydown($event)"
+      />
+    </div>
+    @if (open()) {
+      <div class="results" id="supplier-list" role="listbox" aria-label="Suppliers">
+        @if (loading()) {
+          <p class="results-note">Loading suppliers…</p>
+        } @else if (error(); as message) {
+          <p class="results-note text-danger">{{ message }}</p>
+        } @else {
+          @for (supplier of results(); track supplier.id; let index = $index) {
+            <div
+              class="result-row"
+              role="option"
+              [id]="'supplier-option-' + index"
+              [class.is-active]="index === active()"
+              [attr.aria-selected]="index === active()"
+              (mousedown)="$event.preventDefault()"
+              (mouseenter)="active.set(index)"
+              (click)="choose(supplier)"
+            >
+              <span class="r-name">{{ supplier.name }}</span>
+              <span class="r-meta">
+                {{ supplier.city || supplier.state }} ·
+                <span class="mono">{{ supplier.mobile }}</span>
+                @if (supplier.gstNumber) {
+                  · <span class="mono">{{ supplier.gstNumber }}</span>
+                }
+              </span>
+            </div>
+          } @empty {
+            <p class="results-note">
+              No active supplier matches. Add or activate suppliers in Masters → Suppliers.
+            </p>
+          }
+        }
+      </div>
+    }
+  </div>
+}

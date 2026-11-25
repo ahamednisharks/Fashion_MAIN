@@ -1,0 +1,257 @@
+@switch (state()) {
+  @case ('loading') {
+    <section class="card" aria-busy="true" aria-label="Loading product">
+      <div class="card-body loading-body">
+        <span class="skeleton" style="width: 40%; height: 16px"></span>
+        <span class="skeleton" style="width: 70%"></span>
+        <span class="skeleton" style="width: 55%"></span>
+        <span class="skeleton" style="width: 65%"></span>
+      </div>
+    </section>
+  }
+  @case ('error') {
+    <section class="card">
+      <app-error-state [message]="loadError()" (retry)="load()">
+        <a routerLink="/masters/products" class="btn btn-ghost btn-sm">Back to products</a>
+      </app-error-state>
+    </section>
+  }
+  @case ('not-found') {
+    <section class="card">
+      <app-empty-state icon="box-seam" heading="Product not found" [message]="loadError()">
+        <a routerLink="/masters/products" class="btn btn-secondary btn-sm">Back to products</a>
+      </app-empty-state>
+    </section>
+  }
+  @default {
+    <form class="page-stack" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <app-page-header
+        [heading]="product()?.name ?? ''"
+        [description]="
+          isEdit()
+            ? 'Update product details, pricing and its size / colour variants.'
+            : 'Define the product, its pricing and the size / colour variants you sell.'
+        "
+      >
+        <a routerLink="/masters/products" class="btn btn-ghost"
+          ><app-icon name="arrow-left" /> Products</a
+        >
+      </app-page-header>
+
+      @if (submitter.error(); as message) {
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+        </div>
+      }
+
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title"><app-icon name="box-seam" /> Basic details</h2>
+        </header>
+        <div class="card-body">
+          <div class="form-grid cols-3">
+            <app-form-field label="Product Name" class="span-2">
+              <input
+                class="form-control"
+                formControlName="name"
+                maxlength="120"
+                autocomplete="off"
+                placeholder="e.g. Men's Cotton Casual Shirt"
+                autofocus
+              />
+            </app-form-field>
+            <app-form-field label="Product Code" hint="Unique code, also used as the SKU prefix.">
+              <div class="input-group">
+                <input
+                  class="form-control mono"
+                  formControlName="code"
+                  maxlength="30"
+                  autocomplete="off"
+                  placeholder="e.g. MSH-1001"
+                  appUppercase
+                />
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  title="Suggest a code"
+                  aria-label="Suggest a product code"
+                  (click)="generateCode()"
+                >
+                  <app-icon name="magic" /><span class="hide-xs">Suggest</span>
+                </button>
+              </div>
+            </app-form-field>
+
+            <app-form-field label="Category">
+              <select class="form-control" formControlName="categoryId">
+                <option value="">Select category</option>
+                @for (category of options().categories; track category.id) {
+                  <option [value]="category.id">
+                    {{ category.name }}{{ inactiveSuffix(category.status) }}
+                  </option>
+                }
+              </select>
+            </app-form-field>
+            <app-form-field label="Brand">
+              <select class="form-control" formControlName="brandId">
+                <option value="">No brand</option>
+                @for (brand of options().brands; track brand.id) {
+                  <option [value]="brand.id">
+                    {{ brand.name }}{{ inactiveSuffix(brand.status) }}
+                  </option>
+                }
+              </select>
+            </app-form-field>
+            <app-form-field label="Product Type">
+              <select class="form-control" formControlName="productType">
+                @for (type of typeOptions; track type.value) {
+                  <option [value]="type.value">{{ type.label }}</option>
+                }
+              </select>
+            </app-form-field>
+
+            <app-form-field label="Description" class="span-2">
+              <textarea
+                class="form-control"
+                formControlName="description"
+                rows="2"
+                maxlength="500"
+                placeholder="Optional — fabric, fit, care instructions…"
+              ></textarea>
+            </app-form-field>
+            <app-form-field label="Status">
+              <app-segmented-control
+                formControlName="status"
+                [options]="statusOptions"
+                ariaLabel="Status"
+              />
+            </app-form-field>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title"><app-icon name="receipt" /> Pricing &amp; tax</h2>
+          <p class="card-subtitle">Variants use these prices unless you override them.</p>
+        </header>
+        <div class="card-body">
+          <div class="form-grid cols-3">
+            <app-form-field label="MRP" hint="Maximum retail price printed on the tag.">
+              <div class="input-group">
+                <span class="input-addon">₹</span>
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="mrp"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+            </app-form-field>
+            <app-form-field label="Selling Price" [hint]="marginHint()">
+              <div class="input-group">
+                <span class="input-addon">₹</span>
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="sellingPrice"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+            </app-form-field>
+            <app-form-field label="Purchase Price" hint="Optional. Used for margin calculations.">
+              <div class="input-group">
+                <span class="input-addon">₹</span>
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="purchasePrice"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+            </app-form-field>
+
+            <app-form-field label="GST Rate">
+              <select class="form-control" formControlName="gstRate">
+                @for (rate of gstRates; track rate) {
+                  <option [ngValue]="rate">{{ rate }}%</option>
+                }
+              </select>
+            </app-form-field>
+            <app-form-field label="HSN Code" hint="4, 6 or 8 digits, e.g. 6205 for men's shirts.">
+              <input
+                class="form-control mono"
+                formControlName="hsnCode"
+                inputmode="numeric"
+                maxlength="8"
+                placeholder="e.g. 6205"
+              />
+            </app-form-field>
+            <app-form-field
+              label="Product Barcode"
+              hint="Used when the product is sold without variants."
+            >
+              <div class="input-group">
+                <span class="input-addon"><app-icon name="upc-scan" /></span>
+                <input
+                  class="form-control mono"
+                  formControlName="barcode"
+                  maxlength="48"
+                  autocomplete="off"
+                  placeholder="Scan or type"
+                />
+              </div>
+            </app-form-field>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title">
+            <app-icon name="layers" /> Variants
+            <span class="count">({{ form.controls.variants.length }})</span>
+          </h2>
+          <p class="card-subtitle">Each design / model, size and colour combination you sell.</p>
+        </header>
+        <div class="card-body">
+          <app-variant-editor
+            [variants]="form.controls.variants"
+            [highlightId]="variant() ?? ''"
+            [sizes]="options().sizes"
+            [colors]="options().colors"
+            [productCode]="form.controls.code.value"
+            [baseMrp]="form.controls.mrp.value"
+            [baseSelling]="form.controls.sellingPrice.value"
+            [basePurchase]="form.controls.purchasePrice.value"
+          />
+        </div>
+      </section>
+
+      <div class="form-actions-bar">
+        <span class="form-actions-note">
+          @if (form.dirty) {
+            <app-icon name="exclamation-circle" /> Unsaved changes
+          }
+        </span>
+        <a routerLink="/masters/products" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" [disabled]="submitter.saving()">
+          @if (submitter.saving()) {
+            <span class="spinner" aria-hidden="true"></span> Saving…
+          } @else {
+            <app-icon name="check-circle" /> {{ isEdit() ? 'Save changes' : 'Create product' }}
+          }
+        </button>
+      </div>
+    </form>
+  }
+}

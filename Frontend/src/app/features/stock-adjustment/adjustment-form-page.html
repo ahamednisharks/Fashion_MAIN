@@ -1,0 +1,409 @@
+<app-page-header
+  heading="New stock adjustment"
+  description="Correct the stock: opening stock, a physical count, damaged, lost or found goods. Saving changes the stock at once; a wrong adjustment is cancelled, not edited."
+>
+  <a routerLink="/masters/stock-adjustment" class="btn btn-secondary">
+    <app-icon name="arrow-left" /> All adjustments
+  </a>
+</app-page-header>
+
+<!-- Header -->
+<section class="card po-head adj-head" aria-label="Adjustment details">
+  <div class="reason-col">
+    <div class="reason-row">
+      <label class="field reason-field">
+        <span class="field-label">Reason <span class="req">*</span></span>
+        <select
+          #reasonSelect
+          id="adj-reason"
+          class="form-control"
+          (change)="setReason(reasonSelect.value)"
+        >
+          @for (reason of reasons; track reason) {
+            <option [value]="reason" [selected]="store.reason() === reason">
+              {{ reasonLabels[reason] }}
+            </option>
+          }
+        </select>
+      </label>
+      <div class="field">
+        <span class="field-label">Enter quantities as</span>
+        <app-segmented-control
+          class="mode-control"
+          ariaLabel="Enter quantities as"
+          [options]="modeOptions"
+          [formControl]="modeControl"
+        />
+      </div>
+    </div>
+    <p class="field-hint reason-hint">
+      {{ reasonHint() }}
+      @if (store.mode() === 'count') {
+        <strong>Count:</strong> type or scan what is there; the stock changes by counted − in stock.
+      } @else {
+        <strong>Add / remove:</strong> type how many come in (+) or go out (−).
+      }
+    </p>
+  </div>
+  <div class="head-side adj-side">
+    <div class="field">
+      <span class="field-label">ADJ No</span>
+      <div class="po-number">
+        @if (nextNumber(); as next) {
+          <span class="mono fw-600">{{ next }}</span>
+          <span class="xsmall text-muted">given on save</span>
+        } @else {
+          <span class="text-muted">Given on save</span>
+        }
+      </div>
+    </div>
+    <label class="field">
+      <span class="field-label">Date <span class="req">*</span></span>
+      <input
+        #dateInput
+        type="date"
+        class="form-control"
+        [value]="store.date()"
+        [max]="today"
+        [attr.aria-invalid]="attempted() && !store.date() ? true : null"
+        (change)="setDate(dateInput.value)"
+      />
+    </label>
+  </div>
+</section>
+
+<!-- Items -->
+<section class="card items-card" aria-label="Items">
+  <div class="scan-bar">
+    <div class="scan-row">
+      <app-item-search
+        class="scan-box"
+        purpose="adjusted"
+        rateLabel="In stock"
+        [rateOf]="inStock"
+        [hint]="scanHint()"
+        (picked)="addItem($event)"
+      />
+      <label class="load-field">
+        <span class="visually-hidden">Load items</span>
+        <select
+          #loadSelect
+          class="form-control"
+          [disabled]="loadingItems()"
+          (change)="loadFrom(loadSelect)"
+        >
+          <option value="" selected>
+            {{ loadingItems() ? 'Loading items…' : 'Load items…' }}
+          </option>
+          @for (group of loadGroups(); track group.label) {
+            @if (group.choices.length) {
+              <optgroup [label]="group.label">
+                @for (choice of group.choices; track choice.value) {
+                  <option [value]="choice.value">{{ choice.label }}</option>
+                }
+              </optgroup>
+            }
+          }
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table po-table adj-table">
+      <thead>
+        <tr>
+          <th class="col-no">#</th>
+          <th>Item</th>
+          <th class="text-end">In stock</th>
+          <th class="text-center">{{ store.mode() === 'count' ? 'Counted' : 'Add / remove' }}</th>
+          <th class="text-end">Difference</th>
+          <th class="text-end">After</th>
+          <th class="text-end">Cost (₹)</th>
+          <th class="text-end">Value (₹)</th>
+          <th class="col-note">Note</th>
+          <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of store.lines(); track line.key; let index = $index) {
+          <tr
+            [attr.data-line-key]="line.key"
+            [class.flash-odd]="line.bump % 2 === 1"
+            [class.flash-even]="line.bump % 2 === 0 && line.bump > 0"
+            [class.stock-moved]="line.previousStock !== null"
+          >
+            <td class="col-no text-muted">{{ index + 1 }}</td>
+            <td class="col-item">
+              <div class="item-name">
+                {{ line.item.productName }}
+                @if (line.item.status === 'inactive') {
+                  <span class="badge badge-muted">Inactive</span>
+                }
+              </div>
+              @if (itemDetails(line.item); as details) {
+                <div class="item-details">{{ details }}</div>
+              }
+              <div class="item-codes mono">
+                {{ line.item.sku }}
+                @if (line.item.barcode && line.item.barcode !== line.item.sku) {
+                  · {{ line.item.barcode }}
+                }
+              </div>
+            </td>
+            <td class="text-end nowrap">
+              <span class="fw-600" [class.text-danger]="line.stock < 0">{{
+                line.stock | number: '1.0-3'
+              }}</span>
+              @if (line.previousStock !== null) {
+                <div class="moved-note" title="Changed by a bill or purchase entry meanwhile">
+                  was {{ line.previousStock | number: '1.0-3' }}
+                </div>
+              }
+            </td>
+            <td class="text-center">
+              <div class="qty">
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-icon btn-sm"
+                  tabindex="-1"
+                  [attr.aria-label]="'One less ' + lineLabel(line)"
+                  (click)="store.step(line.key, -1)"
+                >
+                  <app-icon name="dash-lg" />
+                </button>
+                <input
+                  #qty
+                  class="form-control qty-input"
+                  type="text"
+                  [attr.inputmode]="
+                    store.mode() === 'change' ? 'text' : line.allowDecimals ? 'decimal' : 'numeric'
+                  "
+                  autocomplete="off"
+                  [placeholder]="store.mode() === 'count' ? 'Count' : '±'"
+                  [value]="quantityText(line)"
+                  [attr.aria-label]="
+                    (store.mode() === 'count'
+                      ? 'Quantity counted of '
+                      : 'Quantity to add or take out of ') + lineLabel(line)
+                  "
+                  [attr.aria-invalid]="
+                    fieldError('qty:' + line.key) ||
+                    (attempted() && line.difference === null) ||
+                    line.problem
+                      ? true
+                      : null
+                  "
+                  [title]="line.allowDecimals ? 'Metres — decimals allowed' : ''"
+                  (focus)="qty.select()"
+                  (change)="commitQuantity(line, qty)"
+                  (keydown.enter)="commitAndNext(line, qty)"
+                />
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-icon btn-sm"
+                  tabindex="-1"
+                  [attr.aria-label]="'One more ' + lineLabel(line)"
+                  (click)="store.step(line.key, 1)"
+                >
+                  <app-icon name="plus-lg" />
+                </button>
+              </div>
+              @if (fieldError('qty:' + line.key); as message) {
+                <div class="cell-error">{{ message }}</div>
+              } @else if (line.problem) {
+                <div class="cell-error">{{ line.problem }}</div>
+              }
+            </td>
+            <td class="text-end nowrap">
+              @if (line.difference === null) {
+                <span class="text-muted">—</span>
+              } @else if (line.difference === 0) {
+                <span class="text-muted" title="The count matches the stock">Matches</span>
+              } @else {
+                <span
+                  class="fw-600"
+                  [class.text-success]="line.difference > 0"
+                  [class.text-danger]="line.difference < 0"
+                >
+                  {{ line.difference > 0 ? '+' : '−'
+                  }}{{ absolute(line.difference) | number: '1.0-3' }}
+                </span>
+              }
+            </td>
+            <td class="text-end nowrap" [class.text-danger]="line.after !== null && line.after < 0">
+              {{ line.after === null ? '—' : (line.after | number: '1.0-3') }}
+            </td>
+            <td class="text-end">
+              <input
+                #cost
+                class="form-control rate-input cost-input"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="Cost"
+                [value]="line.unitCost === null ? '' : (line.unitCost | number: '1.2-2' : 'en-US')"
+                [attr.aria-label]="'Cost of one piece of ' + lineLabel(line)"
+                [attr.aria-invalid]="fieldError('cost:' + line.key) ? true : null"
+                (focus)="cost.select()"
+                (change)="commitCost(line, cost)"
+                (keydown.enter)="commitAndScan(cost)"
+              />
+              @if (fieldError('cost:' + line.key); as message) {
+                <div class="cell-error">{{ message }}</div>
+              }
+            </td>
+            <td class="text-end nowrap">
+              @if (line.value === null) {
+                <span class="text-muted">—</span>
+              } @else {
+                <span [class.text-danger]="line.value < 0">
+                  {{ line.value < 0 ? '−' : '' }}{{ absolute(line.value) | number: '1.2-2' }}
+                </span>
+              }
+            </td>
+            <td class="col-note">
+              <input
+                #note
+                class="form-control note-input"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="Optional"
+                [value]="line.note"
+                [attr.aria-label]="'Note for ' + lineLabel(line)"
+                (change)="commitNote(line, note)"
+                (keydown.enter)="commitAndScan(note)"
+              />
+            </td>
+            <td class="col-remove text-end">
+              <button
+                type="button"
+                class="btn btn-ghost btn-icon btn-sm is-danger"
+                [attr.aria-label]="'Remove ' + lineLabel(line)"
+                title="Remove"
+                (click)="removeLine(line)"
+              >
+                <app-icon name="trash3" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="10">
+              <div class="empty">
+                <app-icon name="upc-scan" class="empty-icon" />
+                @if (store.mode() === 'count') {
+                  <p class="fw-600">Scan every piece, or load the items to count</p>
+                  <p class="small text-muted">
+                    Each scan counts one. Or use <strong>Load items</strong> to list a category, a
+                    brand or the items below zero, then type what you count.
+                  </p>
+                } @else {
+                  <p class="fw-600">Scan or search the items</p>
+                  <p class="small text-muted">Then type how many come in (+) or go out (−).</p>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Notes + totals -->
+<div class="po-bottom">
+  <section class="card card-body">
+    <label class="field">
+      <span class="field-label">
+        Notes
+        @if (store.reason() === 'other') {
+          <span class="req">*</span>
+        }
+      </span>
+      <textarea
+        #notes
+        class="form-control notes-input"
+        rows="4"
+        maxlength="500"
+        placeholder="Who counted, where, what happened…"
+        [value]="store.notes()"
+        [attr.aria-invalid]="
+          attempted() && store.reason() === 'other' && !store.notes().trim() ? true : null
+        "
+        (input)="setNotes(notes.value)"
+      ></textarea>
+      <span class="field-hint">{{ store.notes().length }}/500</span>
+    </label>
+    @if (store.changedStockLines().length; as count) {
+      <p class="moved-summary" role="status">
+        <app-icon name="exclamation-triangle-fill" />
+        In stock changed for {{ count }} {{ count === 1 ? 'item' : 'items' }} while you were
+        counting (a bill or purchase entry). Check {{ count === 1 ? 'its count' : 'their counts' }}
+        — the difference is worked out from the stock now.
+      </p>
+    }
+  </section>
+
+  <section class="card card-body totals" aria-label="Totals">
+    @let t = store.totals();
+    <dl>
+      <div>
+        <dt>Items</dt>
+        <dd>
+          {{ t.itemCount }}
+          @if (t.enteredCount < t.itemCount) {
+            <span class="text-muted small">({{ t.itemCount - t.enteredCount }} to enter)</span>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>Into stock</dt>
+        <dd class="text-success">
+          {{ t.quantityIn ? '+' : '' }}{{ t.quantityIn | number: '1.0-3' }}
+          <span class="text-muted small">· ₹{{ t.valueIn | number: '1.2-2' }}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Out of stock</dt>
+        <dd class="text-danger">
+          {{ t.quantityOut ? '−' : '' }}{{ t.quantityOut | number: '1.0-3' }}
+          <span class="text-muted small">· ₹{{ t.valueOut | number: '1.2-2' }}</span>
+        </dd>
+      </div>
+      @let netValue = t.valueIn - t.valueOut;
+      <div class="grand">
+        <dt>Net value</dt>
+        <dd>{{ netValue < 0 ? '−' : '' }}₹{{ absolute(netValue) | number: '1.2-2' }}</dd>
+      </div>
+    </dl>
+    @if (t.withoutCost) {
+      <p class="xsmall text-muted cost-note">
+        {{ t.withoutCost }} {{ t.withoutCost === 1 ? 'item has' : 'items have' }} no cost and
+        {{ t.withoutCost === 1 ? 'is' : 'are' }} not in the value.
+      </p>
+    }
+  </section>
+</div>
+
+<div class="form-actions-bar">
+  <span class="form-actions-note">
+    @if (saveError(); as message) {
+      <span class="text-danger" role="alert">
+        <app-icon name="exclamation-circle" /> {{ message }}
+      </span>
+    } @else if (store.hasUnsavedChanges()) {
+      <app-icon name="exclamation-circle" /> Unsaved changes · <kbd>F2</kbd> scan ·
+      <kbd>Ctrl</kbd>+<kbd>S</kbd> save
+    }
+  </span>
+  <a class="btn btn-secondary" routerLink="/masters/stock-adjustment">Cancel</a>
+  <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save()">
+    @if (saving()) {
+      <span class="spinner" aria-hidden="true"></span> Saving…
+    } @else {
+      <app-icon name="check-circle" /> Save adjustment
+    }
+  </button>
+</div>

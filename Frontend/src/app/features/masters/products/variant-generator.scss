@@ -1,0 +1,57 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px dashed var(--c-primary);
+  border-radius: var(--radius);
+  background: var(--c-primary-soft);
+}
+
+.generator-head .app-icon {
+  color: var(--c-primary);
+}
+
+.design-field {
+  max-width: 280px;
+}
+
+.chip-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 8px;
+    padding: 0;
+  }
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+
+  & + & {
+    margin-top: 8px;
+  }
+}
+
+.chip-row-label {
+  width: 72px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-text-3);
+}
+
+.generator-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

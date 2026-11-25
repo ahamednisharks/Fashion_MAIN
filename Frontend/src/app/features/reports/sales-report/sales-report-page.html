@@ -1,0 +1,250 @@
+<app-page-header
+  class="no-print"
+  description="Sales of completed bills for any period — day by day, with the bills behind each day."
+>
+  <button
+    type="button"
+    class="btn btn-secondary"
+    [disabled]="!report() || loading()"
+    (click)="exportCsv()"
+  >
+    <app-icon name="download" /> Export CSV
+  </button>
+  <button type="button" class="btn btn-secondary" [disabled]="!report()" (click)="print()">
+    <app-icon name="printer" /> Print
+  </button>
+</app-page-header>
+
+<!-- Period -->
+<app-period-picker [range]="range()" (rangeChange)="setRange($event)" />
+
+<!-- Title on paper only -->
+<header class="print-only print-title">
+  <h1>Sales Report</h1>
+  <p>
+    {{ rangeLabel(range()) }} · Printed {{ printedAt | date: 'dd MMM y, hh:mm a' }} · Completed
+    bills only
+  </p>
+</header>
+
+@if (error(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the sales report"
+      [message]="message"
+      (retry)="reload()"
+    />
+  </section>
+} @else {
+  @if (report(); as r) {
+    <!-- Details -->
+    <section class="card details-card">
+      <header class="card-header details-header no-print">
+        <app-segmented-control
+          [options]="viewOptions"
+          [formControl]="viewControl"
+          ariaLabel="Show sales"
+        />
+        @if (view() === 'bills' && billsDay(); as day) {
+          <span class="chip">
+            Bills of {{ day | date: 'dd MMM y' }}
+            <button
+              type="button"
+              class="chip-clear"
+              aria-label="Show bills of the whole period"
+              (click)="showWholePeriod()"
+            >
+              <app-icon name="x-lg" />
+            </button>
+          </span>
+        } @else {
+          <span class="small text-muted">{{ rangeLabel(range()) }}</span>
+        }
+      </header>
+
+      <!-- Day-wise: always printed, shown on screen when selected. -->
+      <div class="day-wise" [class.screen-hidden]="view() !== 'days'">
+        @if (r.days.length) {
+          <div class="table-wrap" [class.is-stale]="loading()">
+            <table class="data-table day-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th class="text-end">Bills</th>
+                  <th class="text-end">Qty</th>
+                  <th class="text-end hide-below-xl">Gross</th>
+                  <th class="text-end">Discount</th>
+                  <th class="text-end hide-below-xl">Taxable</th>
+                  <th class="text-end">GST</th>
+                  <th class="text-end">Net sales</th>
+                  <th class="text-end">Cash</th>
+                  <th class="text-end">UPI</th>
+                  <th class="text-end">Card</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (day of r.days; track day.date) {
+                  <tr>
+                    <td class="nowrap">
+                      <button
+                        type="button"
+                        class="cell-link"
+                        [attr.aria-label]="'Show bills of ' + (day.date | date: 'd MMMM y')"
+                        (click)="showDay(day.date)"
+                      >
+                        {{ day.date | date: 'dd MMM y' }}
+                      </button>
+                      <span class="weekday">{{ day.date | date: 'EEE' }}</span>
+                    </td>
+                    <td class="text-end">{{ day.billCount }}</td>
+                    <td class="text-end">{{ day.quantity | number: '1.0-3' }}</td>
+                    <td class="text-end hide-below-xl">{{ day.grossAmount | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ day.discountTotal | number: '1.2-2' }}</td>
+                    <td class="text-end hide-below-xl">{{ day.taxableTotal | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ day.gstTotal | number: '1.2-2' }}</td>
+                    <td class="text-end fw-600">{{ day.netSales | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ day.cash | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ day.upi | number: '1.2-2' }}</td>
+                    <td class="text-end">{{ day.card | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td class="text-end">{{ r.totals.billCount }}</td>
+                  <td class="text-end">{{ r.totals.quantity | number: '1.0-3' }}</td>
+                  <td class="text-end hide-below-xl">
+                    {{ r.totals.grossAmount | number: '1.2-2' }}
+                  </td>
+                  <td class="text-end">{{ r.totals.discountTotal | number: '1.2-2' }}</td>
+                  <td class="text-end hide-below-xl">
+                    {{ r.totals.taxableTotal | number: '1.2-2' }}
+                  </td>
+                  <td class="text-end">{{ r.totals.gstTotal | number: '1.2-2' }}</td>
+                  <td class="text-end">{{ r.totals.netSales | number: '1.2-2' }}</td>
+                  <td class="text-end">{{ r.totals.cash | number: '1.2-2' }}</td>
+                  <td class="text-end">{{ r.totals.upi | number: '1.2-2' }}</td>
+                  <td class="text-end">{{ r.totals.card | number: '1.2-2' }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p class="card-note small text-muted no-print">
+            Amounts in ₹. Days without sales are not listed. Click a date to see its bills.
+          </p>
+        } @else {
+          <app-empty-state
+            icon="bar-chart-line"
+            heading="No sales in this period"
+            message="Pick another period, or save bills at the counter."
+          />
+        }
+      </div>
+
+      @if (view() === 'bills') {
+        <div class="no-print">
+          <app-period-bills [from]="billsRange().from" [to]="billsRange().to" />
+        </div>
+      }
+    </section>
+  }
+
+  <!-- Headline figures -->
+  <div class="stat-grid" [class.is-stale]="loading()" [attr.aria-busy]="loading()">
+    @if (!report()) {
+      @for (tile of [0, 1, 2, 3, 4, 5]; track tile) {
+        <div class="stat-tile is-loading">
+          <span class="skeleton" style="width: 50%"></span>
+          <span class="skeleton" style="width: 30%; height: 20px"></span>
+        </div>
+      }
+    } @else {
+      @for (tile of tiles(); track tile.label) {
+        <div class="stat-tile">
+          <span class="stat-icon"><app-icon [name]="tile.icon" /></span>
+          <span class="stat-text">
+            <span class="stat-label">{{ tile.label }}</span>
+            <span class="stat-value">{{ tile.value }}</span>
+            <span class="stat-detail" [attr.title]="tile.detail">{{ tile.detail }}</span>
+          </span>
+        </div>
+      }
+    }
+  </div>
+
+  @if (report(); as r) {
+    <div class="summary-grid" [class.is-stale]="loading()">
+      <!-- Payment split -->
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title">Payments received</h2>
+        </header>
+        <ul class="meter-list card-body">
+          @for (payment of payments(); track payment.label) {
+            <li class="meter-row">
+              <span class="meter-name">
+                <app-icon [name]="payment.icon" /> {{ payment.label }}
+              </span>
+              <span
+                class="meter-track"
+                role="img"
+                [attr.aria-label]="payment.label + ': ' + (payment.share | number: '1.0-1') + '%'"
+              >
+                <span class="meter-fill" [style.width.%]="payment.share"></span>
+              </span>
+              <span class="meter-share">{{ payment.share | number: '1.0-0' }}%</span>
+              <span class="meter-amount">₹{{ payment.amount | number: '1.2-2' }}</span>
+            </li>
+          }
+        </ul>
+        <p class="card-note small text-muted">Cash is after change returned to customers.</p>
+      </section>
+
+      <!-- Amount breakup -->
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title">Sales and GST breakup</h2>
+        </header>
+        <dl class="breakup card-body">
+          <div>
+            <dt>Gross sales <span class="text-muted">(at selling rate)</span></dt>
+            <dd>₹{{ r.totals.grossAmount | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>Less: discount</dt>
+            <dd>−₹{{ r.totals.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>Round-off</dt>
+            <dd>{{ rupees(r.totals.roundOff) }}</dd>
+          </div>
+          <div class="is-total">
+            <dt>Net sales</dt>
+            <dd>₹{{ r.totals.netSales | number: '1.2-2' }}</dd>
+          </div>
+          <div class="is-gap">
+            <dt>Taxable value</dt>
+            <dd>₹{{ r.totals.taxableTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>CGST</dt>
+            <dd>₹{{ r.totals.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>SGST</dt>
+            <dd>₹{{ r.totals.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>IGST</dt>
+            <dd>₹{{ r.totals.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div class="is-total">
+            <dt>Total GST</dt>
+            <dd>₹{{ r.totals.gstTotal | number: '1.2-2' }}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  }
+}

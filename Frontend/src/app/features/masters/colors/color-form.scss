@@ -1,0 +1,50 @@
+.color-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface-2);
+}
+
+.swatch.is-empty {
+  background: repeating-linear-gradient(45deg, #e2e8f0 0 6px, #f8fafc 6px 12px);
+}
+
+.preview-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.preview-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.color-picker {
+  flex-shrink: 0;
+  width: var(--control-h);
+  height: var(--control-h);
+  padding: 3px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  cursor: pointer;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-color-swatch {
+    border: 0;
+    border-radius: 4px;
+  }
+
+  &::-moz-color-swatch {
+    border: 0;
+    border-radius: 4px;
+  }
+}

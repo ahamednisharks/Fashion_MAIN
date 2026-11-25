@@ -1,0 +1,244 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+// Three tiles per row at every desktop width: amounts in lakhs need the room.
+.stat-grid {
+  @include up(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+// While a new period loads, the old figures stay visible but dimmed.
+.is-stale {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+// ---- Summary cards -------------------------------------------------------------------------------
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+
+  @include up(lg) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.card-note {
+  padding: 0 16px 14px;
+
+  @include up(md) {
+    padding: 0 20px 16px;
+  }
+}
+
+// Payment split: one row per mode — name, a single-hue share bar, share and amount.
+.meter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.meter-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 44px auto;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-base);
+}
+
+.meter-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+
+  .app-icon {
+    color: var(--c-text-3);
+  }
+}
+
+.meter-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--c-surface-hover);
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c-primary);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.meter-share {
+  color: var(--c-text-3);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
+.meter-amount {
+  min-width: 110px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+// Amount statement.
+.breakup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  dt {
+    color: var(--c-text-2);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .is-total {
+    padding-top: 8px;
+    border-top: 1px solid var(--c-border);
+    font-weight: 700;
+
+    dt {
+      color: var(--c-text);
+    }
+  }
+
+  .is-gap {
+    margin-top: 10px;
+  }
+}
+
+// ---- Day-wise / bill-wise -------------------------------------------------------------------------
+
+// The day-wise / bill-wise table comes first, right under the period.
+.details-card {
+  margin-bottom: 16px;
+}
+
+.details-header {
+  justify-content: flex-start;
+}
+
+.chip-clear {
+  display: inline-flex;
+  margin-right: -4px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 10px;
+
+  &:hover {
+    background: var(--c-border);
+    color: var(--c-text);
+  }
+}
+
+.day-table {
+  font-variant-numeric: tabular-nums;
+
+  .weekday {
+    margin-left: 6px;
+    font-size: var(--fs-xs);
+    color: var(--c-text-3);
+  }
+
+  tfoot td {
+    padding: 10px 12px;
+    border-top: 2px solid var(--c-border-strong);
+    background: var(--c-surface-2);
+    font-weight: 700;
+    white-space: nowrap;
+
+    &:first-child {
+      padding-left: 16px;
+    }
+
+    &:last-child {
+      padding-right: 16px;
+    }
+  }
+}
+
+.day-wise .card-note {
+  padding-top: 10px;
+}
+
+// Day-wise is always in the page so it prints even while the bill-wise view is on screen.
+@media screen {
+  .screen-hidden {
+    display: none;
+  }
+}
+
+// ---- Paper ------------------------------------------------------------------------------------------
+
+.print-title {
+  margin-bottom: 12px;
+
+  h1 {
+    margin: 0 0 2px;
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--c-text-3);
+  }
+}
+
+@media print {
+  .stat-grid,
+  .summary-grid {
+    opacity: 1;
+  }
+
+  .details-card {
+    border: 0;
+  }
+
+  // All eleven columns must fit the width of an A4 page.
+  .day-table {
+    font-size: 10px;
+
+    th,
+    td,
+    tfoot td {
+      padding: 4px 5px;
+    }
+
+    th {
+      font-size: 9px;
+      letter-spacing: 0;
+    }
+
+    .weekday {
+      display: none;
+    }
+  }
+}

@@ -1,0 +1,294 @@
+<app-page-header
+  description="Stock of every item for a period — opening stock, goods in and out, and the closing stock with its value. View only."
+>
+  <button
+    type="button"
+    class="btn btn-secondary"
+    [disabled]="!!exporting() || !list.total()"
+    (click)="downloadExcel()"
+  >
+    @if (exporting() === 'excel') {
+      <span class="spinner" aria-hidden="true"></span>
+    } @else {
+      <app-icon name="file-earmark-excel" />
+    }
+    Excel
+  </button>
+  <button
+    type="button"
+    class="btn btn-secondary"
+    [disabled]="!!exporting() || !list.total()"
+    (click)="downloadPdf()"
+  >
+    @if (exporting() === 'pdf') {
+      <span class="spinner" aria-hidden="true"></span>
+    } @else {
+      <app-icon name="file-earmark-pdf" />
+    }
+    PDF
+  </button>
+</app-page-header>
+
+<app-period-picker [range]="range()" (rangeChange)="setRange($event)" />
+
+<!-- Totals of every matching item -->
+<section
+  class="card figures"
+  aria-label="Stock totals"
+  [class.is-stale]="list.loading()"
+  [attr.aria-busy]="list.loading()"
+>
+  @if (figures().length) {
+    @for (figure of figures(); track figure.label) {
+      <div class="figure" [attr.data-tone]="figure.tone ?? null">
+        <span class="figure-label">{{ figure.label }}</span>
+        <span class="figure-value">{{ figure.value }}</span>
+      </div>
+    }
+  } @else {
+    @for (figure of [0, 1, 2, 3, 4, 5]; track figure) {
+      <div class="figure">
+        <span class="skeleton" style="width: 70%"></span>
+        <span class="skeleton" style="width: 45%; height: 18px"></span>
+      </div>
+    }
+  }
+</section>
+
+<section class="card report-card" aria-label="Stock of each item">
+  <app-list-toolbar
+    placeholder="Search item, SKU, barcode, design no."
+    [search]="list.query().search"
+    [showStatus]="false"
+    [hasFilters]="hasItemFilters()"
+    (searchChange)="list.setSearch($event)"
+    (clear)="clearItemFilters()"
+  >
+    <select
+      #brandSelect
+      class="form-control filter-select"
+      aria-label="Filter by brand"
+      (change)="list.setFilter('brandId', brandSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('brandId')">All brands</option>
+      @for (brand of brands(); track brand.id) {
+        <option [value]="brand.id" [selected]="list.filterValue('brandId') === brand.id">
+          {{ brand.name }}
+        </option>
+      }
+    </select>
+    <select
+      #sizeSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by size"
+      (change)="list.setFilter('sizeId', sizeSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('sizeId')">All sizes</option>
+      @for (size of sizes(); track size.id) {
+        <option [value]="size.id" [selected]="list.filterValue('sizeId') === size.id">
+          {{ size.name }}
+        </option>
+      }
+    </select>
+    <select
+      #colorSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by colour"
+      (change)="list.setFilter('colorId', colorSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('colorId')">All colours</option>
+      @for (color of colors(); track color.id) {
+        <option [value]="color.id" [selected]="list.filterValue('colorId') === color.id">
+          {{ color.name }}
+        </option>
+      }
+    </select>
+    <select
+      #stockSelect
+      class="form-control filter-select filter-wide"
+      aria-label="Which items to show"
+      (change)="setStock(stockSelect.value)"
+    >
+      @for (option of stockOptions; track option.value) {
+        <option [value]="option.value" [selected]="stockFilter() === option.value">
+          {{ option.label }}
+        </option>
+      }
+    </select>
+  </app-list-toolbar>
+
+  @if (list.error(); as message) {
+    <app-error-state
+      heading="Couldn't load the stock report"
+      [message]="message"
+      (retry)="list.reload()"
+    />
+  } @else if (!list.loading() && !list.items().length) {
+    @if (hasItemFilters()) {
+      <app-empty-state
+        icon="search"
+        heading="No items match these filters"
+        [message]="'Period: ' + periodLabel(range())"
+      >
+        <button type="button" class="btn btn-secondary btn-sm" (click)="clearItemFilters()">
+          Clear filters
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="box-seam"
+        heading="No stock in this period"
+        message="Goods come in with purchase entries, go out with bills and are corrected with stock adjustments. Pick another period, or show all items."
+      >
+        <button type="button" class="btn btn-secondary btn-sm" (click)="setStock('all')">
+          Show all items
+        </button>
+      </app-empty-state>
+    }
+  } @else {
+    <div
+      class="table-wrap"
+      [class.is-refreshing]="list.loading()"
+      [attr.aria-busy]="list.loading()"
+    >
+      <table class="data-table is-stacked stock-table">
+        <thead>
+          <tr>
+            <th class="col-no">#</th>
+            <th [attr.aria-sort]="ariaSort('name')">
+              <button type="button" class="sort-btn" (click)="toggleSort('name')">
+                {{ sortLabels['name'] }}
+                <app-icon class="sort-icon" [name]="sortIcon('name')" />
+              </button>
+            </th>
+            <th class="hide-below-lg" [attr.aria-sort]="ariaSort('sku')">
+              <button type="button" class="sort-btn" (click)="toggleSort('sku')">
+                {{ sortLabels['sku'] }}
+                <app-icon class="sort-icon" [name]="sortIcon('sku')" />
+              </button>
+            </th>
+            @for (key of ['opening', 'purchased', 'sold', 'adjusted', 'closing']; track key) {
+              <th class="text-end col-qty" [attr.aria-sort]="ariaSort(key)">
+                <button type="button" class="sort-btn" (click)="toggleSort(key)">
+                  {{ sortLabels[key] }}
+                  <app-icon class="sort-icon" [name]="sortIcon(key)" />
+                </button>
+              </th>
+            }
+            <th class="text-end hide-below-xl">Rate (₹)</th>
+            <th class="text-end" [attr.aria-sort]="ariaSort('stockValue')">
+              <button type="button" class="sort-btn" (click)="toggleSort('stockValue')">
+                {{ sortLabels['stockValue'] }}
+                <app-icon class="sort-icon" [name]="sortIcon('stockValue')" />
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of list.items(); track rowKey(row); let i = $index) {
+            <tr [class.is-inactive]="row.status === 'inactive'">
+              <td class="col-no text-muted small cell-hide-mobile">
+                {{ (list.query().page - 1) * list.query().pageSize + i + 1 }}
+              </td>
+              <td class="col-item cell-title">
+                <span class="fw-600">{{ row.productName }}</span>
+                @if (row.status === 'inactive') {
+                  <span class="badge badge-muted">Inactive</span>
+                }
+                <div class="item-details">
+                  @if (row.colorHex) {
+                    <span class="swatch item-swatch" [style.background]="row.colorHex"></span>
+                  }
+                  {{ itemDetails(row) || 'No variants' }}
+                  @if (row.brandName) {
+                    <span class="text-muted">· {{ row.brandName }}</span>
+                  }
+                </div>
+              </td>
+              <td class="mono small hide-below-lg cell-hide-mobile">{{ row.sku }}</td>
+              <td class="text-end" data-label="Opening" [class.is-zero]="!row.opening">
+                {{ row.opening | number: '1.0-3' }}
+              </td>
+              <td
+                class="text-end"
+                data-label="Purchase"
+                [class.is-zero]="!row.purchased"
+                [class.is-in]="!!row.purchased"
+              >
+                {{ row.purchased | number: '1.0-3' }}
+              </td>
+              <td
+                class="text-end"
+                data-label="Sales"
+                [class.is-zero]="!row.sold"
+                [class.is-out]="!!row.sold"
+              >
+                {{ row.sold | number: '1.0-3' }}
+              </td>
+              <td class="text-end" data-label="Adjust" [class.is-zero]="!row.adjusted">
+                {{ signed(row.adjusted) }}
+              </td>
+              <td class="text-end nowrap" data-label="Closing">
+                <button
+                  type="button"
+                  class="stock-btn"
+                  [class.is-out]="row.closing === 0"
+                  [class.is-negative]="row.closing < 0"
+                  title="Stock history"
+                  [attr.aria-label]="'Stock history of ' + row.productName + ' ' + itemDetails(row)"
+                  (click)="historyItem.set(row)"
+                >
+                  {{ row.closing | number: '1.0-3' }}
+                </button>
+              </td>
+              <td class="text-end hide-below-xl text-muted" data-label="Rate (₹)">
+                {{ row.purchaseRate === null ? '—' : (row.purchaseRate | number: '1.2-2') }}
+              </td>
+              <td class="text-end nowrap" data-label="Value (₹)" [class.is-zero]="!row.stockValue">
+                {{ row.stockValue | number: '1.2-2' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+        @if (totals(); as t) {
+          <tfoot>
+            <tr>
+              <td></td>
+              <td class="cell-title">
+                Total · {{ t.itemCount | number }} item{{ t.itemCount === 1 ? '' : 's' }}
+              </td>
+              <td class="hide-below-lg"></td>
+              <td class="text-end" data-label="Opening">{{ t.opening | number: '1.0-3' }}</td>
+              <td class="text-end" data-label="Purchase">{{ t.purchased | number: '1.0-3' }}</td>
+              <td class="text-end" data-label="Sales">{{ t.sold | number: '1.0-3' }}</td>
+              <td class="text-end" data-label="Adjust">{{ signed(t.adjusted) }}</td>
+              <td class="text-end" data-label="Closing">{{ t.closing | number: '1.0-3' }}</td>
+              <td class="hide-below-xl"></td>
+              <td class="text-end nowrap" data-label="Value (₹)">
+                {{ t.stockValue | number: '1.2-2' }}
+              </td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+  }
+  @if (historyItem(); as item) {
+    <app-stock-history-dialog [item]="item" (closed)="historyItem.set(null)" />
+  }
+  <div class="card-footer">
+    <app-pagination
+      [page]="list.query().page"
+      [pageSize]="list.query().pageSize"
+      [total]="list.total()"
+      (pageChange)="list.setPage($event)"
+      (pageSizeChange)="list.setPageSize($event)"
+    />
+  </div>
+</section>
+
+<p class="report-note small text-muted">
+  Purchase = goods received with purchase entries · Sales = goods sold on bills · Adjust = stock
+  adjustments · Value = closing stock × purchase rate (GST excluded). Click a closing figure for the
+  item's stock history.
+</p>

@@ -1,0 +1,69 @@
+@use 'mixins' as *;
+
+.loading-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-title {
+  min-width: 0;
+}
+
+.product-name {
+  font-size: var(--fs-xl);
+  overflow-wrap: anywhere;
+}
+
+.summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+
+  .app-icon {
+    color: var(--c-text-3);
+  }
+}
+
+.summary-description {
+  margin-top: 12px;
+  max-width: 760px;
+  color: var(--c-text-2);
+}
+
+.detail-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @include up(lg) {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.card-header .card-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.override-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-primary);
+}
+
+.is-override {
+  font-weight: 600;
+  color: var(--c-primary-text);
+}

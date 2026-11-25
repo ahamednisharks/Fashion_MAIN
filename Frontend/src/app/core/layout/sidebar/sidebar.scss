@@ -1,0 +1,246 @@
+@use 'mixins' as *;
+
+:host {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+  width: min(var(--sidebar-w), 86vw);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform 0.2s ease,
+    visibility 0.2s;
+
+  &.is-open {
+    transform: none;
+    visibility: visible;
+    box-shadow: var(--shadow-lg);
+  }
+
+  @include up(lg) {
+    width: var(--sidebar-w);
+    transform: none;
+    visibility: visible;
+    transition: width 0.15s ease;
+
+    &.is-rail {
+      width: var(--sidebar-rail-w);
+    }
+  }
+}
+
+// ---- Brand -----------------------------------------------------------------------------------------
+
+.sidebar-brand {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-h);
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.drawer-close {
+  display: inline-flex;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--sidebar-text);
+
+  &:hover {
+    background: var(--sidebar-hover);
+  }
+
+  @include up(lg) {
+    display: none;
+  }
+}
+
+// ---- Navigation ------------------------------------------------------------------------------------
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  padding: 10px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  // A thin rounded bar in the menu's own colours, without the browser's grey track and arrows.
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.36);
+    }
+  }
+
+  // Firefox has no ::-webkit-scrollbar. (Chrome ignores those rules once these are set, so they
+  // are for Firefox only.)
+  @supports (-moz-appearance: none) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+}
+
+.nav-link,
+.nav-group-toggle,
+.rail-toggle {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--sidebar-text);
+  font-size: var(--fs-base);
+  text-align: left;
+  text-decoration: none !important;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-strong);
+  }
+
+  &:focus-visible {
+    outline-color: var(--sidebar-accent);
+    outline-offset: -2px;
+  }
+
+  @include up(lg) {
+    min-height: 36px;
+  }
+}
+
+.nav-link.is-active {
+  position: relative;
+  background: var(--sidebar-active);
+  color: var(--sidebar-text-strong);
+  font-weight: 500;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--sidebar-accent);
+  }
+
+  .nav-icon {
+    color: var(--sidebar-accent);
+  }
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+.nav-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-tag {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sidebar-muted);
+}
+
+.nav-group-toggle {
+  .nav-chevron {
+    font-size: 11px;
+    color: var(--sidebar-muted);
+    transition: transform 0.15s ease;
+  }
+
+  &[aria-expanded='false'] .nav-chevron {
+    transform: rotate(-90deg);
+  }
+}
+
+.nav-group.is-active > .nav-group-toggle {
+  color: var(--sidebar-text-strong);
+}
+
+.nav-children {
+  margin: 2px 0 4px;
+
+  .nav-link {
+    padding-left: 22px;
+  }
+}
+
+// ---- Footer ----------------------------------------------------------------------------------------
+
+.sidebar-footer {
+  display: none;
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid var(--sidebar-border);
+
+  @include up(lg) {
+    display: block;
+  }
+}
+
+.rail-toggle {
+  color: var(--sidebar-muted);
+}
+
+// ---- Icon rail (desktop collapsed) ----------------------------------------------------------------
+
+:host(.is-rail) {
+  .sidebar-brand {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .nav-label,
+  .nav-tag,
+  .nav-group-toggle {
+    display: none;
+  }
+
+  .nav-link,
+  .rail-toggle {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .nav-children {
+    margin: 0;
+    padding: 6px 0;
+    border-top: 1px solid var(--sidebar-border);
+    border-bottom: 1px solid var(--sidebar-border);
+
+    .nav-link {
+      padding-left: 0;
+    }
+  }
+}

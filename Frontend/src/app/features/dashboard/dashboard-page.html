@@ -1,0 +1,128 @@
+<app-page-header
+  description="Overview of your shop's master data. Billing and purchase insights will appear here in later phases."
+>
+  <a routerLink="/masters/products/new" class="btn btn-primary"
+    ><app-icon name="plus-lg" /> New Product</a
+  >
+</app-page-header>
+
+@if (error(); as message) {
+  <section class="card">
+    <app-error-state heading="Couldn't load the dashboard" [message]="message" (retry)="load()" />
+  </section>
+} @else {
+  <div class="stat-grid" [attr.aria-busy]="loading()">
+    @if (loading() && !summary()) {
+      @for (tile of skeletonTiles; track tile) {
+        <div class="stat-tile is-loading">
+          <span class="skeleton" style="width: 50%"></span>
+          <span class="skeleton" style="width: 30%; height: 20px"></span>
+        </div>
+      }
+    } @else {
+      @for (tile of tiles(); track tile.label) {
+        <a class="stat-tile" [routerLink]="tile.link">
+          <span class="stat-icon"><app-icon [name]="tile.icon" /></span>
+          <span class="stat-text">
+            <span class="stat-label">{{ tile.label }}</span>
+            <span class="stat-value">{{ tile.value }}</span>
+            <span class="stat-detail">{{ tile.detail }}</span>
+          </span>
+        </a>
+      }
+    }
+  </div>
+
+  <div class="dashboard-grid">
+    <section class="card recent-card">
+      <header class="card-header">
+        <h2 class="card-title">Recent products</h2>
+        <a routerLink="/masters/products" class="btn btn-ghost btn-sm"
+          >View all <app-icon name="chevron-right"
+        /></a>
+      </header>
+      @if (summary(); as s) {
+        @if (s.recentProducts.length) {
+          <ul class="item-list">
+            @for (product of s.recentProducts; track product.id) {
+              <li>
+                <a class="item-row" [routerLink]="['/masters/products', product.id]">
+                  <span class="item-main">
+                    <span class="item-title">{{ product.name }}</span>
+                    <span class="item-meta">
+                      <span class="mono">{{ product.code }}</span> · {{ product.categoryName }} ·
+                      {{ product.variantCount }} variants
+                    </span>
+                  </span>
+                  <span class="item-side">
+                    <span class="fw-600">{{ product.sellingPrice | currency: 'INR' }}</span>
+                    <app-status-badge [status]="product.status" />
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="card-body text-muted">
+            No products yet. <a routerLink="/masters/products/new">Add your first product</a>.
+          </p>
+        }
+      } @else {
+        <div class="card-body list-skeleton">
+          <span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span>
+        </div>
+      }
+    </section>
+
+    <div class="side-column">
+      <section class="card">
+        <header class="card-header"><h2 class="card-title">Quick actions</h2></header>
+        <div class="card-body quick-actions">
+          @for (action of quickActions; track action.label) {
+            <a class="quick-action" [routerLink]="action.link" [queryParams]="action.queryParams">
+              <app-icon [name]="action.icon" /> {{ action.label }}
+            </a>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <header class="card-header">
+          <h2 class="card-title"><app-icon name="clipboard-check" /> Needs attention</h2>
+        </header>
+        @if (summary(); as s) {
+          @if (s.needsAttention.length) {
+            <ul class="item-list">
+              @for (entry of s.needsAttention; track entry.product.id) {
+                <li>
+                  <a
+                    class="item-row"
+                    [routerLink]="['/masters/products', entry.product.id, 'edit']"
+                  >
+                    <span class="item-main">
+                      <span class="item-title">{{ entry.product.name }}</span>
+                      <span class="issue-tags">
+                        @for (issue of entry.issues; track issue) {
+                          <span class="badge badge-warning">{{ issue }}</span>
+                        }
+                      </span>
+                    </span>
+                    <app-icon name="chevron-right" class="text-muted" />
+                  </a>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="card-body all-good">
+              <app-icon name="check-circle-fill" /> All active products are complete.
+            </p>
+          }
+        } @else {
+          <div class="card-body list-skeleton">
+            <span class="skeleton"></span><span class="skeleton"></span>
+          </div>
+        }
+      </section>
+    </div>
+  </div>
+}

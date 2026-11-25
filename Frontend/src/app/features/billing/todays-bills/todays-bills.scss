@@ -1,0 +1,21 @@
+@use 'mixins' as *;
+
+.summary {
+  margin-bottom: 10px;
+}
+
+.text-body {
+  color: var(--c-text);
+}
+
+.table-wrap {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.hide-below-lg {
+  @include down(lg) {
+    display: none;
+  }
+}

@@ -1,0 +1,134 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-h);
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none !important;
+  user-select: none;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease;
+
+  // Raised buttons: shadow that lifts on hover and settles when pressed.
+  // Ghost and link buttons stay flat (they sit inside table rows and toolbars).
+  &:is(.btn-primary, .btn-secondary, .btn-danger, .btn-outline-danger) {
+    box-shadow: var(--shadow-btn);
+
+    &:hover {
+      box-shadow: var(--shadow-btn-hover);
+    }
+
+    &:active {
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.55;
+    box-shadow: none;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .app-icon {
+    font-size: 1.05em;
+  }
+}
+
+.btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+
+  &:hover {
+    background: var(--c-primary-hover);
+  }
+}
+
+.btn-secondary {
+  background: var(--c-surface);
+  border-color: var(--c-border-strong);
+  color: var(--c-text);
+
+  &:hover {
+    background: var(--c-surface-hover);
+  }
+}
+
+.btn-ghost {
+  color: var(--c-text-2);
+
+  &:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+  }
+
+  &.is-danger {
+    color: var(--c-danger);
+
+    &:hover {
+      background: var(--c-danger-soft);
+    }
+  }
+}
+
+.btn-danger {
+  background: var(--c-danger);
+  color: #fff;
+
+  &:hover {
+    background: var(--c-danger-hover);
+  }
+}
+
+.btn-outline-danger {
+  background: var(--c-surface);
+  border-color: var(--c-danger-border);
+  color: var(--c-danger);
+
+  &:hover {
+    background: var(--c-danger-soft);
+  }
+}
+
+.btn-sm {
+  height: var(--control-h-sm);
+  padding: 0 10px;
+  font-size: var(--fs-sm);
+}
+
+.btn-icon {
+  width: var(--control-h);
+  padding: 0;
+
+  &.btn-sm {
+    width: var(--control-h-sm);
+  }
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-link {
+  height: auto;
+  padding: 0;
+  color: var(--c-primary);
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline !important;
+  }
+}

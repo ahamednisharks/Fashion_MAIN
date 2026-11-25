@@ -1,0 +1,78 @@
+<div class="auth-panel">
+  <div class="auth-brand">
+    <span class="auth-brand-mark" aria-hidden="true">F</span>
+    <span class="auth-brand-text">
+      <span class="auth-brand-name">Fashion</span>
+      <span class="auth-brand-tagline">Dress Shop Manager</span>
+    </span>
+  </div>
+
+  <main class="card auth-card">
+    <h1 class="auth-title">Sign in</h1>
+    <p class="auth-subtitle">Enter your username and password to continue.</p>
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="signIn()" novalidate>
+      @if (submitter.error(); as message) {
+        <div class="alert alert-danger" role="alert">
+          <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+        </div>
+      }
+
+      <app-form-field label="Username">
+        <input
+          #username
+          class="form-control"
+          formControlName="username"
+          maxlength="40"
+          autocomplete="username"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
+          placeholder="e.g. admin"
+        />
+      </app-form-field>
+
+      <app-form-field label="Password">
+        <div class="input-group">
+          <input
+            class="form-control"
+            formControlName="password"
+            maxlength="128"
+            autocomplete="current-password"
+            [type]="showPassword() ? 'text' : 'password'"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            [attr.aria-pressed]="showPassword()"
+            [attr.title]="showPassword() ? 'Hide password' : 'Show password'"
+            (click)="showPassword.update((shown) => !shown)"
+          >
+            <app-icon [name]="showPassword() ? 'eye-slash' : 'eye'" />
+          </button>
+        </div>
+      </app-form-field>
+
+      <div class="auth-row">
+        <label class="check">
+          <input type="checkbox" formControlName="remember" />
+          Keep me signed in
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-submit" [disabled]="submitter.saving()">
+        @if (submitter.saving()) {
+          <span class="spinner" aria-hidden="true"></span> Signing in…
+        } @else {
+          <app-icon name="box-arrow-in-right" /> Sign in
+        }
+      </button>
+    </form>
+  </main>
+
+  <p class="auth-footnote">
+    Forgot your password? Ask your shop administrator to reset it.<br />
+    Only tick “Keep me signed in” on a device you trust.
+  </p>
+</div>

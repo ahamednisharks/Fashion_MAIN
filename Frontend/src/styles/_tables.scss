@@ -1,0 +1,183 @@
+@use 'mixins' as *;
+
+// Horizontal scroll is contained inside the wrapper, never on the page.
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-base);
+
+  th {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--c-table-head-border);
+    background: var(--c-table-head-bg);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+    color: var(--c-table-head-text);
+    white-space: nowrap;
+
+    &:first-child {
+      padding-left: 16px;
+    }
+
+    &:last-child {
+      padding-right: 16px;
+    }
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--c-border);
+    vertical-align: middle;
+
+    &:first-child {
+      padding-left: 16px;
+    }
+
+    &:last-child {
+      padding-right: 16px;
+    }
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tbody tr:hover td {
+    background: #fafbfc;
+  }
+
+  .text-end {
+    text-align: right;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+}
+
+// Primary cell rendered as a button that opens the record's details.
+.cell-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-text);
+  font-weight: 600;
+  text-align: left;
+
+  &:hover {
+    color: var(--c-primary);
+    text-decoration: underline;
+  }
+}
+
+.data-table tr.is-inactive .cell-link {
+  color: var(--c-text-3);
+}
+
+// Columns hidden on narrower desktop widths (cards on phones handle their own visibility).
+@include up(md) {
+  @include down(lg) {
+    .data-table .hide-below-lg {
+      display: none;
+    }
+  }
+
+  @include down(xl) {
+    .data-table .hide-below-xl {
+      display: none;
+    }
+  }
+}
+
+// ---- Stacked "card" mode for phones ----------------------------------------------------------------
+// Every row becomes a card; each cell shows its column label from [data-label].
+@include down(md) {
+  .data-table.is-stacked {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: block;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--c-border);
+    }
+
+    tbody tr:last-child {
+      border-bottom: 0;
+    }
+
+    tbody tr:hover td {
+      background: transparent;
+    }
+
+    td {
+      display: block;
+      min-width: 0;
+      padding: 0 !important;
+      border: 0;
+      text-align: left !important;
+      overflow-wrap: anywhere;
+
+      &::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 2px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--c-text-3);
+      }
+    }
+
+    .cell-title {
+      grid-column: 1 / -1;
+      font-size: var(--fs-md);
+
+      &::before {
+        display: none;
+      }
+    }
+
+    .cell-full {
+      grid-column: 1 / -1;
+    }
+
+    .cell-hide-mobile {
+      display: none;
+    }
+
+    .cell-actions {
+      grid-column: 1 / -1;
+      padding-top: 10px !important;
+      border-top: 1px dashed var(--c-border);
+
+      &::before {
+        display: none;
+      }
+    }
+  }
+}

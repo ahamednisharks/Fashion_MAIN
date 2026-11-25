@@ -1,0 +1,168 @@
+@use 'mixins' as *;
+
+// Billing page — right-hand panel: customer, totals, payment and Save & Print.
+
+.bill-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @include up(lg) {
+    position: sticky;
+    top: calc(var(--header-h) + 12px);
+    // Short screens: the panel scrolls by itself so Save & Print is always reachable.
+    max-height: calc(100dvh - var(--header-h) - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.side-card {
+  padding: 14px 16px;
+}
+
+.side-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+
+  kbd {
+    margin-left: auto;
+    text-transform: none;
+  }
+}
+
+.totals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.t-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-base);
+  font-variant-numeric: tabular-nums;
+
+  dd {
+    margin: 0;
+  }
+
+  &.t-muted {
+    font-size: var(--fs-sm);
+    color: var(--c-text-3);
+  }
+}
+
+.grand {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: var(--fs-sm);
+
+  strong {
+    font-size: 1.75rem;
+    letter-spacing: 0;
+    color: var(--c-primary-text);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.payment-modes {
+  display: flex;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.pay-field {
+  margin-bottom: 8px;
+}
+
+.form-control.amount-input {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.change {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--c-success-soft);
+  font-size: var(--fs-sm);
+  color: #14532d;
+
+  strong {
+    font-size: var(--fs-lg);
+  }
+
+  &.is-short {
+    background: var(--c-warning-soft);
+    color: #92400e;
+  }
+}
+
+.save-error {
+  margin-bottom: 8px;
+}
+
+// Save (F8) beside the main Save & Print (F9).
+.save-actions {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 8px;
+}
+
+.btn.save-button {
+  height: 48px;
+  padding-inline: 10px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kbd-on-primary {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.clear-button {
+  margin-top: 6px;
+}

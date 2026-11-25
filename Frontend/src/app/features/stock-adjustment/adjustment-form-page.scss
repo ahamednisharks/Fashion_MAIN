@@ -1,0 +1,115 @@
+@use 'mixins' as *;
+
+// Adds to ../purchase/orders/po-form-page.scss (shared layout of the document forms).
+
+// ---- Header -------------------------------------------------------------------------------------
+
+.reason-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.reason-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+}
+
+.reason-field {
+  flex: 0 1 240px;
+  min-width: 180px;
+}
+
+.reason-hint {
+  display: block;
+  max-width: 680px;
+  margin: 0;
+}
+
+// Both labels in full ("Add / remove" is the longer one).
+.mode-control {
+  width: 240px;
+}
+
+// ADJ No · Date.
+.adj-side {
+  @include up(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// ---- Scan bar -----------------------------------------------------------------------------------
+
+.scan-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+}
+
+.scan-box {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.load-field {
+  flex: 0 1 260px;
+
+  select {
+    width: 100%;
+  }
+}
+
+// ---- Lines --------------------------------------------------------------------------------------
+
+.form-control.cost-input {
+  width: 88px;
+}
+
+.col-note {
+  width: 160px;
+}
+
+.form-control.note-input {
+  width: 150px;
+  height: var(--control-h-sm);
+  padding: 0 8px;
+}
+
+.adj-table .qty-input {
+  width: 64px;
+}
+
+// Stock changed by a bill / entry since the line was added (after a refused save).
+.adj-table tbody tr.stock-moved td {
+  background: var(--c-warning-soft, #fef3c7);
+}
+
+.moved-note {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--c-warning);
+  white-space: nowrap;
+}
+
+// ---- Bottom -------------------------------------------------------------------------------------
+
+.moved-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--c-warning);
+}
+
+.totals dd .small {
+  margin-left: 4px;
+}
+
+.cost-note {
+  margin: 10px 0 0;
+}

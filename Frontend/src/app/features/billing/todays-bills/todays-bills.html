@@ -1,0 +1,79 @@
+<app-modal title="Today's bills" size="xl" [dismissible]="true" (closed)="closed.emit()">
+  <div class="modal-body">
+    @if (error(); as message) {
+      <app-error-state heading="Couldn't load bills" [message]="message" (retry)="load()" />
+    } @else if (loading()) {
+      <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+    } @else if (!bills().length) {
+      <app-empty-state
+        icon="receipt"
+        heading="No bills yet today"
+        message="Saved bills appear here for reprinting."
+      />
+    } @else {
+      <p class="summary small text-muted">
+        {{ todayLabel | date: 'EEEE, d MMMM y' }} · {{ total() }}
+        {{ total() === 1 ? 'bill' : 'bills' }} · Sales
+        <b class="text-body">₹{{ salesTotal() | number: '1.2-2' }}</b>
+        @if (total() > bills().length) {
+          (showing the latest {{ bills().length }})
+        }
+      </p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Bill No</th>
+              <th>Time</th>
+              <th>Customer</th>
+              <th class="text-end">Qty</th>
+              <th>Paid by</th>
+              <th class="text-end">Amount</th>
+              <th class="hide-below-lg">Billed by</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bill of bills(); track bill.id) {
+              <tr>
+                <td class="mono fw-600 nowrap">{{ bill.invoiceNo }}</td>
+                <td class="nowrap">{{ bill.createdAt | date: 'hh:mm a' }}</td>
+                <td>
+                  @if (bill.customerName) {
+                    {{ bill.customerName }}
+                    <span class="small text-muted mono">{{ bill.customerMobile }}</span>
+                  } @else {
+                    <span class="text-muted">Walk-in</span>
+                  }
+                </td>
+                <td class="text-end">{{ bill.totalQuantity }}</td>
+                <td class="nowrap">{{ modes(bill) }}</td>
+                <td class="text-end fw-600 nowrap">{{ bill.grandTotal | number: '1.2-2' }}</td>
+                <td class="hide-below-lg">{{ bill.createdByName }}</td>
+                <td class="text-end">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    [disabled]="printingId() === bill.id"
+                    [attr.aria-label]="'Print bill ' + bill.invoiceNo"
+                    (click)="reprint(bill)"
+                  >
+                    @if (printingId() === bill.id) {
+                      <span class="spinner" aria-hidden="true"></span>
+                    } @else {
+                      <app-icon name="printer" />
+                    }
+                    Print
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="closed.emit()">Close</button>
+  </div>
+</app-modal>

@@ -1,0 +1,90 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.table-wrap.is-refreshing {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+
+  &:hover {
+    color: var(--c-text);
+  }
+
+  .sort-icon {
+    font-size: 10px;
+  }
+}
+
+.text-end .sort-btn {
+  flex-direction: row-reverse;
+}
+
+.col-actions {
+  width: 1%;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.row-action {
+  width: var(--control-h-sm);
+  padding: 0;
+
+  .row-action-label {
+    display: none;
+  }
+}
+
+// Phones: show text labels on actions (there is room in card mode).
+@include down(md) {
+  .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .row-action {
+    width: auto;
+    padding: 0 10px;
+    border: 1px solid var(--c-border);
+
+    .row-action-label {
+      display: inline;
+    }
+  }
+}
+
+// Skeleton
+.table-skeleton {
+  padding: 4px 0;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}

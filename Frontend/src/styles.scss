@@ -1,0 +1,15 @@
+// Global design system. Component-specific styles live next to their components;
+// shared primitives (buttons, forms, tables, modals...) live in src/styles/.
+@use 'styles/tokens';
+@use 'styles/base';
+@use 'styles/buttons';
+@use 'styles/forms';
+@use 'styles/cards';
+@use 'styles/stats';
+@use 'styles/tables';
+@use 'styles/list-page';
+@use 'styles/badges';
+@use 'styles/modal';
+@use 'styles/feedback';
+@use 'styles/utilities';
+@use 'styles/print';

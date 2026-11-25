@@ -1,0 +1,69 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--c-surface-hover);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--c-text-2);
+  white-space: nowrap;
+
+  &.badge-dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+.badge-success {
+  background: var(--c-success-soft);
+  color: var(--c-success);
+}
+
+.badge-muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge-primary {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+}
+
+.badge-info {
+  background: var(--c-info-soft);
+  color: var(--c-info);
+}
+
+.badge-warning {
+  background: var(--c-warning-soft);
+  color: var(--c-warning);
+}
+
+.badge-danger {
+  background: var(--c-danger-soft);
+  color: var(--c-danger);
+}
+
+// Colour swatch used in tables, selects and details.
+.swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+  border-radius: 5px;
+  vertical-align: middle;
+
+  &.swatch-lg {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+  }
+}

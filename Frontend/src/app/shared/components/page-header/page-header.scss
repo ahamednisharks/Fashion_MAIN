@@ -1,0 +1,43 @@
+@use 'mixins' as *;
+
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.page-header-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.page-heading {
+  font-size: var(--fs-lg);
+}
+
+.page-description {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &:empty {
+    display: none;
+  }
+
+  @include down(sm) {
+    width: 100%;
+
+    ::ng-deep > .btn:not(.btn-ghost) {
+      flex: 1 1 0;
+    }
+  }
+}

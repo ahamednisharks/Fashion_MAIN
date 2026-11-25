@@ -1,0 +1,82 @@
+<div class="sidebar-brand">
+  <app-sidebar-brand [rail]="rail()" />
+  <button
+    type="button"
+    class="drawer-close"
+    aria-label="Close navigation"
+    (click)="layout.closeDrawer()"
+  >
+    <app-icon name="x-lg" />
+  </button>
+</div>
+
+<nav class="sidebar-nav" aria-label="Main navigation">
+  <ul>
+    @for (entry of entries(); track entry.label) {
+      @if (isGroup(entry)) {
+        <li class="nav-group" [class.is-active]="groupIsActive(entry)">
+          <button
+            type="button"
+            class="nav-group-toggle"
+            [attr.aria-expanded]="isExpanded(entry)"
+            (click)="toggleGroup(entry)"
+          >
+            <app-icon class="nav-icon" [name]="entry.icon" />
+            <span class="nav-label">{{ entry.label }}</span>
+            <app-icon class="nav-chevron" name="chevron-down" />
+          </button>
+          @if (isExpanded(entry)) {
+            <ul class="nav-children">
+              @for (child of entry.children; track child.route) {
+                <li>
+                  <a
+                    class="nav-link"
+                    [routerLink]="child.route"
+                    routerLinkActive="is-active"
+                    ariaCurrentWhenActive="page"
+                    [attr.title]="rail() ? child.label : null"
+                  >
+                    <app-icon class="nav-icon" [name]="child.icon" />
+                    <span class="nav-label">{{ child.label }}</span>
+                    @if (child.tag) {
+                      <span class="nav-tag">{{ child.tag }}</span>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      } @else {
+        <li>
+          <a
+            class="nav-link"
+            [routerLink]="entry.route"
+            routerLinkActive="is-active"
+            ariaCurrentWhenActive="page"
+            [attr.title]="rail() ? entry.label : null"
+          >
+            <app-icon class="nav-icon" [name]="entry.icon" />
+            <span class="nav-label">{{ entry.label }}</span>
+            @if (entry.tag) {
+              <span class="nav-tag">{{ entry.tag }}</span>
+            }
+          </a>
+        </li>
+      }
+    }
+  </ul>
+</nav>
+
+<div class="sidebar-footer">
+  <button
+    type="button"
+    class="rail-toggle"
+    [attr.aria-label]="rail() ? 'Expand sidebar' : 'Collapse sidebar'"
+    [attr.title]="rail() ? 'Expand sidebar' : 'Collapse sidebar'"
+    (click)="layout.toggleNavigation()"
+  >
+    <app-icon [name]="rail() ? 'chevron-double-right' : 'chevron-double-left'" />
+    <span class="nav-label">Collapse</span>
+  </button>
+</div>

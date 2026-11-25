@@ -1,0 +1,105 @@
+@let meta = pageMeta.meta();
+
+<button
+  type="button"
+  class="btn btn-ghost btn-icon nav-toggle"
+  [attr.aria-label]="layout.isDesktop() ? 'Toggle sidebar' : 'Open navigation'"
+  [attr.aria-expanded]="layout.isDesktop() ? !layout.railCollapsed() : layout.drawerOpen()"
+  (click)="layout.toggleNavigation()"
+>
+  <app-icon name="list" />
+</button>
+
+<div class="header-titles">
+  @if (meta.breadcrumbs.length > 1) {
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        @for (crumb of meta.breadcrumbs; track $index; let last = $last) {
+          <li>
+            @if (crumb.link && !last) {
+              <a [routerLink]="crumb.link">{{ crumb.label }}</a>
+            } @else {
+              <span [attr.aria-current]="last ? 'page' : null">{{ crumb.label }}</span>
+            }
+          </li>
+        }
+      </ol>
+    </nav>
+  }
+  <h1 class="page-title">{{ meta.title }}</h1>
+</div>
+
+<div class="header-actions">
+  <div class="menu-anchor">
+    <button
+      type="button"
+      class="btn btn-ghost btn-icon"
+      aria-label="Notifications"
+      aria-haspopup="true"
+      [attr.aria-expanded]="openMenu() === 'notifications'"
+      (click)="toggleMenu('notifications')"
+    >
+      <app-icon name="bell" />
+    </button>
+    @if (openMenu() === 'notifications') {
+      <div class="menu-panel notifications-panel" role="dialog" aria-label="Notifications">
+        <p class="menu-heading">Notifications</p>
+        <div class="menu-empty">
+          <app-icon name="bell" />
+          <p>You're all caught up.</p>
+          <p class="text-muted xsmall">Stock and billing alerts will appear here.</p>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="menu-anchor">
+    @let profile = user();
+    <button
+      type="button"
+      class="profile-btn"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="openMenu() === 'profile'"
+      (click)="toggleMenu('profile')"
+    >
+      <span class="avatar" aria-hidden="true">{{ profile.initials }}</span>
+      <span class="profile-name hide-mobile">{{ profile.name }}</span>
+      <app-icon name="chevron-down" class="profile-chevron hide-mobile" />
+      <span class="visually-hidden">Account menu</span>
+    </button>
+    @if (openMenu() === 'profile') {
+      <div class="menu-panel profile-panel" role="menu">
+        <div class="profile-summary">
+          <span class="avatar avatar-lg" aria-hidden="true">{{ profile.initials }}</span>
+          <span>
+            <span class="fw-600 profile-summary-name">{{ profile.name }}</span>
+            <span class="text-muted xsmall">
+              {{ profile.role }}
+              @if (profile.username) {
+                · <span class="mono">{{ profile.username }}</span>
+              }
+            </span>
+          </span>
+        </div>
+        @if (auth.enabled) {
+          <button type="button" role="menuitem" class="menu-item" (click)="changePassword()">
+            <app-icon name="key" /> Change password
+          </button>
+        }
+        @if (auth.enabled && auth.isAdmin()) {
+          <a role="menuitem" class="menu-item" routerLink="/users" (click)="openMenu.set(null)">
+            <app-icon name="person-gear" /> Users
+          </a>
+        }
+        <a role="menuitem" class="menu-item" routerLink="/settings" (click)="openMenu.set(null)">
+          <app-icon name="gear" /> Settings
+        </a>
+        @if (auth.enabled) {
+          <button type="button" role="menuitem" class="menu-item" (click)="logout()">
+            <app-icon name="box-arrow-right" /> Log out
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>

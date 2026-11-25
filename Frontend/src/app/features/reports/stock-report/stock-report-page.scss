@@ -1,0 +1,277 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+// From tablets up the page fits the window: period, totals, filters and pagination stay in
+// place and only the table rows scroll (headings stick to the top, totals to the bottom).
+// Phones keep normal page scrolling.
+@include up(md) {
+  :host {
+    display: flex;
+    flex-direction: column;
+    // Window minus the app header and the content area's top (20px) and bottom (24px) padding.
+    height: calc(100dvh - var(--header-h) - 44px);
+    min-height: 520px;
+  }
+
+  :host > * {
+    flex-shrink: 0;
+  }
+
+  .report-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    > .table-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+  }
+
+  .stock-table {
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tfoot td {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+    }
+  }
+}
+
+// While a new period / filter loads, the old figures stay visible but dimmed.
+.is-stale,
+.table-wrap.is-refreshing {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+// ---- Totals strip --------------------------------------------------------------------------------
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+
+  @include up(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 10px 20px;
+  }
+
+  @include up(xl) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  .skeleton {
+    display: block;
+  }
+}
+
+.figure-label {
+  @include truncate;
+  font-size: var(--fs-xs);
+  color: var(--c-text-3);
+}
+
+.figure-value {
+  @include truncate;
+  font-size: var(--fs-lg, 18px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+}
+
+.figure[data-tone='in'] .figure-value {
+  color: var(--c-success);
+}
+
+.figure[data-tone='out'] .figure-value {
+  color: var(--c-danger);
+}
+
+.figure[data-tone='strong'] .figure-value {
+  color: var(--c-primary-text, var(--c-primary));
+}
+
+// ---- Table ---------------------------------------------------------------------------------------
+
+.filter-narrow {
+  max-width: 140px;
+}
+
+// "Stock or movement" needs the room.
+@include up(md) {
+  .filter-wide.filter-select {
+    flex-basis: 200px;
+  }
+}
+
+.stock-table {
+  font-variant-numeric: tabular-nums;
+
+  td {
+    vertical-align: top;
+  }
+
+  .col-no {
+    width: 1%;
+    padding-right: 0;
+    white-space: nowrap;
+  }
+
+  .col-item {
+    min-width: 200px;
+
+    .badge {
+      margin-left: 6px;
+    }
+  }
+
+  .col-qty {
+    white-space: nowrap;
+  }
+
+  td.is-zero {
+    color: var(--c-text-3);
+  }
+
+  td.is-in {
+    color: var(--c-success);
+  }
+
+  td.is-out {
+    color: var(--c-danger);
+  }
+
+  tfoot td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-top: 2px solid var(--c-border-strong);
+    background: var(--c-surface-2);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
+.item-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+.swatch.item-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--c-text);
+  }
+
+  .sort-icon {
+    font-size: 10px;
+  }
+}
+
+.text-end .sort-btn {
+  flex-direction: row-reverse;
+}
+
+// Closing stock: a button opening the item's stock history.
+.stock-btn {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--c-primary-soft);
+  }
+
+  &.is-out {
+    color: var(--c-text-3);
+  }
+
+  &.is-negative {
+    color: var(--c-danger);
+  }
+}
+
+// Phones: every item is a card (see .data-table.is-stacked) with three figures per line; the
+// totals row becomes the last card.
+@include down(md) {
+  .stock-table.is-stacked {
+    tr {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    tfoot {
+      display: block;
+
+      tr {
+        background: var(--c-surface-2);
+      }
+
+      td {
+        border: 0;
+        background: transparent;
+      }
+
+      td:empty {
+        display: none;
+      }
+    }
+  }
+}
+
+.report-note {
+  margin: 8px 2px 0;
+}

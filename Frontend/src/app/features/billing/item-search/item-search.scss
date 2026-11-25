@@ -1,0 +1,187 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.scan-row {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.scan-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.scan-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  font-size: 18px;
+  color: var(--c-text-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.form-control.scan-input {
+  height: 46px;
+  padding-left: 40px;
+  padding-right: 48px;
+  font-size: 1rem;
+  font-weight: 500;
+
+  @include down(lg) {
+    padding-right: 12px;
+  }
+}
+
+.scan-field.has-error .scan-input {
+  border-color: var(--c-danger);
+}
+
+.scan-spinner {
+  position: absolute;
+  top: 50%;
+  right: 42px;
+  margin-top: -7px;
+  color: var(--c-primary);
+}
+
+.scan-kbd {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+
+.btn.scan-add {
+  height: 46px;
+  padding: 0 18px;
+}
+
+.scan-message {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  color: var(--c-text-3);
+
+  &.is-error {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--c-danger);
+  }
+}
+
+// ---- Matching items: a compact list of rows (never cards) ------------------------------------
+
+.results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.result-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 160px) 56px 80px 80px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: var(--fs-base);
+  cursor: pointer;
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 180px) 130px 56px 80px 80px;
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &.is-active {
+    background: var(--c-primary-soft);
+    box-shadow: inset 3px 0 0 var(--c-primary);
+  }
+
+  &.is-inactive {
+    color: var(--c-text-3);
+  }
+}
+
+.result-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  background: var(--c-surface-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+  cursor: default;
+}
+
+.r-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.r-name {
+  font-weight: 600;
+}
+
+.r-details {
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+}
+
+.r-code {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--c-text-2);
+}
+
+.hide-below-lg {
+  @include down(lg) {
+    display: none;
+  }
+}
+
+.results-note {
+  padding: 8px 12px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+}
+
+.r-stock {
+  font-variant-numeric: tabular-nums;
+
+  &.is-out {
+    color: var(--c-text-3);
+  }
+
+  &.is-negative {
+    color: var(--c-danger);
+  }
+}

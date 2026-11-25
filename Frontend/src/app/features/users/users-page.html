@@ -1,0 +1,117 @@
+<app-page-header
+  description="People who can sign in. Administrators open the dashboard and manage masters, users and settings; staff open billing."
+>
+  <button type="button" class="btn btn-primary" (click)="openCreate()">
+    <app-icon name="person-plus" /> Add User
+  </button>
+</app-page-header>
+
+<section class="card list-card" aria-label="Users">
+  <app-list-toolbar
+    placeholder="Search name or username"
+    [search]="list.query().search"
+    [status]="list.query().status"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (statusChange)="list.setStatus($event)"
+    (clear)="list.clearFilters()"
+  >
+    <select
+      #roleSelect
+      class="form-control filter-select"
+      aria-label="Filter by role"
+      (change)="list.setFilter('role', roleSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('role')">All roles</option>
+      @for (role of roleOptions; track role.value) {
+        <option [value]="role.value" [selected]="list.filterValue('role') === role.value">
+          {{ role.label }}
+        </option>
+      }
+    </select>
+  </app-list-toolbar>
+  <app-data-table
+    entityName="users"
+    emptyMessage="Add the people who will sign in to Fashion."
+    createLabel="Add User"
+    [rows]="list.items()"
+    [columns]="columns"
+    [actions]="actions"
+    [loading]="list.loading()"
+    [error]="list.error()"
+    [sort]="list.query().sort"
+    [filtered]="list.hasFilters()"
+    (action)="onAction($event)"
+    (sortChange)="list.setSort($event)"
+    (retry)="list.reload()"
+    (clearFilters)="list.clearFilters()"
+    (create)="openCreate()"
+  >
+    <ng-template appCell="username" [appCellOf]="list.items()" let-user>
+      <span class="mono">{{ user.username }}</span>
+      @if (isSelf(user)) {
+        <span class="badge badge-info">You</span>
+      }
+    </ng-template>
+    <ng-template appCell="role" [appCellOf]="list.items()" let-user>
+      <span class="badge" [class.badge-primary]="user.role === 'admin'">
+        {{ roleLabel(user.role) }}
+      </span>
+      @if (user.mustChangePassword) {
+        <span class="badge badge-warning" title="Must change the temporary password">New</span>
+      }
+    </ng-template>
+  </app-data-table>
+  <app-pagination
+    [page]="list.query().page"
+    [pageSize]="list.query().pageSize"
+    [total]="list.total()"
+    (pageChange)="list.setPage($event)"
+    (pageSizeChange)="list.setPageSize($event)"
+  />
+</section>
+
+@if (dialog(); as dialog) {
+  @if (dialog.mode === 'view') {
+    <app-modal title="User details" [dismissible]="true" (closed)="close()">
+      <div class="modal-body">
+        <app-detail-list [items]="details(dialog.user)" />
+      </div>
+      <div class="modal-footer">
+        @if (!isSelf(dialog.user)) {
+          <button
+            type="button"
+            class="btn btn-outline-danger footer-start"
+            (click)="delete(dialog.user)"
+          >
+            <app-icon name="trash3" /> Delete
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="resetPassword(dialog.user)">
+            <app-icon name="key" /> Reset password
+          </button>
+        }
+        <button type="button" class="btn btn-primary" (click)="openEdit(dialog.user)">
+          <app-icon name="pencil-square" /> Edit
+        </button>
+      </div>
+    </app-modal>
+  } @else if (dialog.mode === 'password') {
+    <app-temporary-password-dialog
+      [title]="dialog.title"
+      [result]="dialog.result"
+      (closed)="close()"
+    />
+  } @else if (dialog.mode === 'edit') {
+    <app-modal title="Edit user" (closed)="close()">
+      <app-user-form
+        [user]="dialog.user"
+        [isSelf]="isSelf(dialog.user)"
+        (updated)="onUpdated($event)"
+      />
+    </app-modal>
+  } @else {
+    <app-modal title="Add user" (closed)="close()">
+      <app-user-form (created)="onCreated($event)" />
+    </app-modal>
+  }
+}

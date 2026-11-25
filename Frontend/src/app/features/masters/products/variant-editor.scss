@@ -1,0 +1,279 @@
+@use 'mixins' as *;
+
+// Grid-table layout needs ~950px of content width; below that, variants render as cards.
+$table-mode: '(min-width: 1280px)';
+$table-cols: 28px minmax(72px, 0.8fr) minmax(64px, 0.7fr) minmax(110px, 1.1fr) minmax(160px, 1.8fr)
+  minmax(120px, 1.2fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) minmax(70px, 0.7fr) 64px;
+
+:host {
+  display: block;
+}
+
+.variant-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.toolbar-hint {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--c-text-3);
+
+  @include down(sm) {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+.variants-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 28px 16px;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--c-text-3);
+
+  > .app-icon {
+    margin-bottom: 6px;
+    font-size: 22px;
+  }
+
+  .fw-600 {
+    color: var(--c-text);
+  }
+
+  .small {
+    max-width: 460px;
+  }
+}
+
+.variant-head {
+  display: none;
+}
+
+// ---- Card layout (default) ---------------------------------------------------------------------
+
+.variant-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  padding: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+
+  & + & {
+    margin-top: 10px;
+  }
+
+  &.has-issues {
+    border-color: var(--c-danger-border);
+    background: #fffbfb;
+  }
+
+  // The variant opened from the Items screen.
+  &.is-highlighted {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 2px var(--c-focus);
+  }
+
+  @include up(md) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+// Card layout: wide slots for colour, SKU and barcode so codes stay readable;
+// price overrides share one row.
+.v-color,
+.v-sku,
+.v-barcode,
+.v-prices {
+  grid-column: span 2;
+}
+
+.v-prices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+
+  @include up(md) {
+    grid-column: 1 / -1;
+  }
+}
+
+.variant-index {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 30px;
+  padding-right: 72px;
+}
+
+.idx {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--c-surface-hover);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--c-text-2);
+}
+
+.variant-title {
+  @include truncate;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.vfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vlabel {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--c-text-2);
+
+  .req {
+    color: var(--c-danger);
+  }
+}
+
+.color-select {
+  position: relative;
+  display: block;
+
+  .swatch {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    transform: translateY(-50%);
+    pointer-events: none;
+
+    &.is-empty {
+      border-style: dashed;
+      background: transparent;
+    }
+  }
+
+  .form-control {
+    padding-left: 32px;
+  }
+}
+
+.variant-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 2px;
+}
+
+.variant-issues {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--c-danger);
+
+  li::before {
+    content: '• ';
+  }
+}
+
+.add-more {
+  margin-top: 10px;
+}
+
+// ---- Grid-table layout (wide screens) -----------------------------------------------------------
+
+@media #{$table-mode} {
+  .variant-head {
+    display: grid;
+    grid-template-columns: $table-cols;
+    gap: 8px;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--c-border);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+  }
+
+  .variant-row {
+    grid-template-columns: $table-cols;
+    align-items: start;
+    gap: 4px 8px;
+    padding: 8px;
+    border: 0;
+    border-bottom: 1px solid var(--c-border);
+    border-radius: 0;
+
+    & + & {
+      margin-top: 0;
+    }
+  }
+
+  .v-color,
+  .v-sku,
+  .v-barcode {
+    grid-column: auto;
+  }
+
+  // Price fields become direct grid items so they line up with the header.
+  .v-prices {
+    display: contents;
+  }
+
+  .form-control.mono {
+    font-size: var(--fs-sm);
+    letter-spacing: 0;
+  }
+
+  .variant-index {
+    grid-column: auto;
+    min-height: var(--control-h);
+    padding-right: 0;
+  }
+
+  .variant-title {
+    display: none;
+  }
+
+  .vlabel {
+    @include visually-hidden;
+  }
+
+  .variant-actions {
+    position: static;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: var(--control-h);
+  }
+
+  .variant-issues {
+    grid-column: 2 / -1;
+  }
+}

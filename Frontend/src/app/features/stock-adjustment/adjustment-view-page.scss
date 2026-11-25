@@ -1,0 +1,29 @@
+// Adds to ../purchase/orders/po-view-page.scss (shared layout of the A4 documents).
+
+.lines-wrap {
+  margin-top: 16px;
+}
+
+.line-note {
+  font-style: italic;
+  color: var(--c-text-2);
+}
+
+.doc-totals dd .small {
+  margin-left: 4px;
+}
+
+@media print {
+  .adj-doc-table {
+    font-size: 11px;
+
+    // Keep the design / size / colour line smaller than the item name on paper.
+    .small {
+      font-size: 10px;
+    }
+
+    .xsmall {
+      font-size: 9px;
+    }
+  }
+}

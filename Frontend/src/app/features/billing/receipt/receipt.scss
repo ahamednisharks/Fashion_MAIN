@@ -1,0 +1,139 @@
+// Printed on 80 mm thermal paper (≈72 mm printable). Black on white only.
+:host {
+  display: none;
+}
+
+.receipt {
+  width: 72mm;
+  padding: 2mm 0;
+  color: #000;
+  background: #fff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+
+  p {
+    margin: 0;
+  }
+}
+
+.center {
+  text-align: center;
+}
+
+// Thermal printers print in black only, so the logo is printed in greys.
+.logo {
+  display: block;
+  max-width: 48mm;
+  max-height: 20mm;
+  margin: 0 auto 3px;
+  object-fit: contain;
+  filter: grayscale(1);
+}
+
+.shop-name {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 6px 0 4px;
+  padding: 3px 0;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.meta {
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #000;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 1px 0;
+  text-align: right;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 700;
+  border-bottom: 1px dashed #000;
+}
+
+.left {
+  text-align: left;
+}
+
+.lines {
+  margin-top: 4px;
+
+  .item-name td {
+    padding-top: 3px;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  tbody tr.item-amounts:last-child td {
+    padding-bottom: 4px;
+  }
+}
+
+.muted {
+  font-weight: 400;
+  color: #333;
+}
+
+.totals {
+  padding: 4px 0;
+  border-top: 1px dashed #000;
+}
+
+.grand {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid #000;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tax {
+  margin-top: 2px;
+  border-top: 1px dashed #000;
+}
+
+.payments {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #000;
+}
+
+footer {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #000;
+}
+
+.saved {
+  font-weight: 700;
+}
+
+.thanks {
+  margin-top: 4px;
+  font-weight: 600;
+}

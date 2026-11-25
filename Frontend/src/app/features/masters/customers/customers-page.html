@@ -1,0 +1,87 @@
+<app-page-header description="Retail and business customers. Search by name or mobile number.">
+  <button type="button" class="btn btn-primary" (click)="page.openCreate()">
+    <app-icon name="plus-lg" /> Add Customer
+  </button>
+</app-page-header>
+
+<section class="card list-card" aria-label="Customers">
+  <app-list-toolbar
+    placeholder="Search name or mobile number"
+    [search]="list.query().search"
+    [status]="list.query().status"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (statusChange)="list.setStatus($event)"
+    (clear)="list.clearFilters()"
+  />
+
+  <app-data-table
+    entityName="customers"
+    emptyMessage="Add customers to keep their contact details and balances in one place."
+    createLabel="Add Customer"
+    [rows]="list.items()"
+    [columns]="columns"
+    [actions]="actions"
+    [loading]="list.loading()"
+    [error]="list.error()"
+    [sort]="list.query().sort"
+    [filtered]="list.hasFilters()"
+    (action)="page.onAction($event)"
+    (sortChange)="list.setSort($event)"
+    (retry)="list.reload()"
+    (clearFilters)="list.clearFilters()"
+    (create)="page.openCreate()"
+  >
+    <ng-template appCell="gstNumber" [appCellOf]="list.items()" let-customer>
+      @if (customer.gstNumber) {
+        <span class="mono">{{ customer.gstNumber }}</span>
+      } @else {
+        <span class="text-muted">—</span>
+      }
+    </ng-template>
+  </app-data-table>
+
+  <app-pagination
+    [page]="list.query().page"
+    [pageSize]="list.query().pageSize"
+    [total]="list.total()"
+    (pageChange)="list.setPage($event)"
+    (pageSizeChange)="list.setPageSize($event)"
+  />
+</section>
+
+@if (page.dialog(); as dialog) {
+  @if (dialog.mode === 'view') {
+    <app-modal title="Customer details" size="lg" [dismissible]="true" (closed)="page.close()">
+      <div class="modal-body">
+        <app-detail-list [items]="details(dialog.item)" />
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-danger footer-start"
+          (click)="page.delete(dialog.item)"
+        >
+          <app-icon name="trash3" /> Delete
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="page.toggleStatus(dialog.item)">
+          {{ dialog.item.status === 'active' ? 'Deactivate' : 'Activate' }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="page.openEdit(dialog.item)">
+          <app-icon name="pencil-square" /> Edit
+        </button>
+      </div>
+    </app-modal>
+  } @else {
+    <app-modal
+      [title]="dialog.mode === 'edit' ? 'Edit customer' : 'Add customer'"
+      size="lg"
+      (closed)="page.close()"
+    >
+      <app-customer-form
+        [customer]="dialog.mode === 'edit' ? dialog.item : null"
+        (saved)="page.onSaved($event)"
+      />
+    </app-modal>
+  }
+}

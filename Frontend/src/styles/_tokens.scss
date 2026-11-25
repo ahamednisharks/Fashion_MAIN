@@ -1,0 +1,102 @@
+@use 'mixins' as *;
+
+// Design tokens. Components must use these variables instead of hard-coded values.
+:root {
+  // Brand — the shop's colour theme (Settings → Colour theme) overrides these, the table
+  // headings and the sidebar colours at runtime; see core/theme/theme-palette.ts.
+  --c-primary: #0f766e;
+  --c-primary-hover: #0c5f59;
+  --c-primary-soft: #e6f4f1;
+  --c-primary-text: #0b5c55;
+  // Flash behind a list row when the same item is added again.
+  --c-primary-flash: #ccfbf1;
+  --c-focus: rgba(15, 118, 110, 0.28);
+
+  // Surfaces & text
+  --c-bg: #ffffff;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8fafc;
+  --c-surface-hover: #f1f5f9;
+  --c-border: #e2e8f0;
+  --c-border-strong: #cbd5e1;
+  --c-text: #0f172a;
+  --c-text-2: #334155;
+  --c-text-3: #64748b;
+  --c-placeholder: #94a3b8;
+
+  // Table column headings: light tint of the brand teal, under the solid teal list toolbar.
+  --c-table-head-bg: #dff1ed;
+  --c-table-head-text: #0b5c55;
+  --c-table-head-border: #b9ddd6;
+
+  // Semantic
+  --c-success: #15803d;
+  --c-success-soft: #ecfdf3;
+  --c-danger: #dc2626;
+  --c-danger-hover: #b91c1c;
+  --c-danger-soft: #fef2f2;
+  --c-danger-border: #fecaca;
+  --c-warning: #b45309;
+  --c-warning-soft: #fffbeb;
+  --c-warning-border: #fde68a;
+  --c-info: #1d4ed8;
+  --c-info-soft: #eff6ff;
+  --c-info-border: #bfdbfe;
+
+  // Sidebar
+  --sidebar-bg: #0f1d2b;
+  --sidebar-text: #c2ccd8;
+  --sidebar-text-strong: #ffffff;
+  --sidebar-muted: #7f8ea3;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(45, 212, 191, 0.14);
+  --sidebar-accent: #2dd4bf;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  // Typography
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --fs-xs: 0.75rem; // 12px
+  --fs-sm: 0.8125rem; // 13px
+  --fs-base: 0.875rem; // 14px
+  --fs-md: 0.9375rem; // 15px
+  --fs-lg: 1.125rem; // 18px
+  --fs-xl: 1.25rem; // 20px
+
+  // Shape & elevation
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 10px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.22);
+  // The page background is white, so cards, tables and buttons rely on these to stand out.
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 6px 18px rgba(15, 23, 42, 0.08);
+  --shadow-btn: 0 1px 2px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.08);
+  --shadow-btn-hover: 0 2px 4px rgba(15, 23, 42, 0.1), 0 6px 14px rgba(15, 23, 42, 0.12);
+
+  // Sizing — touch-friendly controls on small screens, compact on desktop.
+  --control-h: 40px;
+  --control-h-sm: 32px;
+  --header-h: 56px;
+  --sidebar-w: 244px;
+  --sidebar-rail-w: 64px;
+  --page-gutter: 12px;
+
+  // Stacking
+  --z-sidebar: 40;
+  --z-header: 30;
+  --z-backdrop: 35;
+  --z-dropdown: 50;
+
+  @include up(sm) {
+    --page-gutter: 16px;
+  }
+
+  @include up(md) {
+    --control-h: 36px;
+    --control-h-sm: 30px;
+    --page-gutter: 24px;
+  }
+}

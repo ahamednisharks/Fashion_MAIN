@@ -1,0 +1,93 @@
+@use 'mixins' as *;
+
+.visually-hidden {
+  @include visually-hidden;
+}
+
+.text-muted {
+  color: var(--c-text-3);
+}
+
+.text-danger {
+  color: var(--c-danger);
+}
+
+.text-success {
+  color: var(--c-success);
+}
+
+.text-end {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.small {
+  font-size: var(--fs-sm);
+}
+
+.xsmall {
+  font-size: var(--fs-xs);
+}
+
+.fw-600 {
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.truncate {
+  @include truncate;
+}
+
+.pre-line {
+  white-space: pre-line;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@include down(sm) {
+  .hide-xs {
+    display: none !important;
+  }
+}
+
+@include up(sm) {
+  .show-xs {
+    display: none !important;
+  }
+}
+
+@include down(md) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@include up(md) {
+  .show-mobile {
+    display: none !important;
+  }
+}

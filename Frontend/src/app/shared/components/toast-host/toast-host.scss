@@ -1,0 +1,101 @@
+@use 'mixins' as *;
+
+:host {
+  position: fixed;
+  inset: auto 12px 12px 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+
+  @include up(sm) {
+    inset: auto 20px 20px auto;
+    width: 380px;
+  }
+}
+
+// Hidden popovers must not take space; browsers without the Popover API ignore this.
+:host([popover]:not(:popover-open)) {
+  display: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 10px 11px 14px;
+  border: 1px solid var(--c-border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+}
+
+.toast-success {
+  border-left-color: var(--c-success);
+
+  .toast-icon {
+    color: var(--c-success);
+  }
+}
+
+.toast-error {
+  border-left-color: var(--c-danger);
+
+  .toast-icon {
+    color: var(--c-danger);
+  }
+}
+
+.toast-info {
+  border-left-color: var(--c-info);
+
+  .toast-icon {
+    color: var(--c-info);
+  }
+}
+
+.toast-warning {
+  border-left-color: var(--c-warning);
+
+  .toast-icon {
+    color: var(--c-warning);
+  }
+}
+
+.toast-icon {
+  margin-top: 2px;
+  font-size: 16px;
+}
+
+.toast-message {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-text);
+  overflow-wrap: anywhere;
+}
+
+.toast-close {
+  display: inline-flex;
+  padding: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--c-text-3);
+  font-size: 12px;
+
+  &:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+  }
+}

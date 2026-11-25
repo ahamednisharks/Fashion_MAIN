@@ -1,0 +1,575 @@
+<app-page-header
+  [heading]="heading()"
+  description="Goods received from a supplier, entered from the supplier's invoice. Rates are before GST — GST is added on top. Saving updates the PO and the item prices."
+>
+  <a routerLink="/purchase/entries" class="btn btn-secondary">
+    <app-icon name="arrow-left" /> All purchase entries
+  </a>
+</app-page-header>
+
+@if (loadError(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the purchase entry"
+      [message]="message"
+      (retry)="start(id(), po())"
+    />
+  </section>
+} @else if (loading()) {
+  <section class="card card-body">
+    <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+  </section>
+} @else if (locked() && existing(); as entry) {
+  <section class="card card-body locked">
+    <app-icon name="lock" class="locked-icon" />
+    <div>
+      <p class="fw-600">{{ entry.peNo }} is cancelled and can no longer be changed.</p>
+      <p class="small text-muted">Enter the supplier invoice again as a new purchase entry.</p>
+    </div>
+    <a class="btn btn-secondary" [routerLink]="['/purchase/entries', entry.id]">View entry</a>
+  </section>
+} @else {
+  <!-- Header -->
+  <section class="card po-head" aria-label="Purchase entry details">
+    <div class="supplier-col">
+      <!-- Step 1: the purchase order the goods came against (sets the supplier and the items). -->
+      <label class="field order-field" [class.has-orders]="!store.order() && orderOptions().length">
+        <span class="field-label">Purchase order</span>
+        <select
+          #orderSelect
+          id="pe-order"
+          class="form-control"
+          [disabled]="orderBusy() || ordersLoading()"
+          (change)="chooseOrder(orderSelect)"
+        >
+          <option value="" [selected]="!store.order()">
+            @if (orderOptions().length && !store.order()) {
+              Choose a purchase order ({{ orderOptions().length }} open) — or direct purchase
+            } @else {
+              Direct purchase (no PO)
+            }
+          </option>
+          @for (option of orderOptions(); track option.id) {
+            <option [value]="option.id" [selected]="store.order()?.id === option.id">
+              {{ option.label }}
+            </option>
+          }
+        </select>
+        <span class="field-hint">
+          @if (ordersLoading()) {
+            Loading purchase orders…
+          } @else if (orderBusy()) {
+            Loading the PO's items…
+          } @else if (store.order(); as order) {
+            The items still to come on {{ order.poNo }} are filled in below — change quantities,
+            rates or prices to match what arrived, then save.
+          } @else if (orderOptions().length) {
+            {{ orderOptions().length }} open {{ orderOptions().length === 1 ? 'PO' : 'POs' }}
+            {{ store.supplier() ? 'from this supplier' : '' }} — choosing one fills in the supplier
+            and its items. Leave it for a purchase without a PO.
+          } @else {
+            No open purchase orders{{ store.supplier() ? ' from this supplier' : '' }} — this is a
+            direct purchase.
+          }
+        </span>
+      </label>
+      <div class="field">
+        <span class="field-label">Supplier <span class="req">*</span></span>
+        <app-supplier-picker
+          [invalid]="attempted() && !store.supplier()"
+          (chosen)="focusInvoiceNo()"
+        />
+      </div>
+    </div>
+    <div class="head-side pe-side">
+      <div class="field">
+        <span class="field-label">PE No</span>
+        <div class="po-number">
+          @if (existing(); as entry) {
+            <span class="mono fw-600">{{ entry.peNo }}</span>
+          } @else if (nextNumber(); as next) {
+            <span class="mono fw-600">{{ next }}</span>
+            <span class="xsmall text-muted">given on save</span>
+          } @else {
+            <span class="text-muted">Given on save</span>
+          }
+        </div>
+      </div>
+      <label class="field">
+        <span class="field-label">Received on <span class="req">*</span></span>
+        <input
+          #entryDate
+          type="date"
+          class="form-control"
+          [value]="store.entryDate()"
+          [max]="today"
+          [attr.aria-invalid]="attempted() && !store.entryDate() ? true : null"
+          (change)="setEntryDate(entryDate.value)"
+        />
+      </label>
+      <label class="field">
+        <span class="field-label">Supplier invoice no <span class="req">*</span></span>
+        <input
+          #invoiceNo
+          id="pe-invoice-no"
+          type="text"
+          class="form-control mono"
+          maxlength="30"
+          autocomplete="off"
+          placeholder="As printed on the bill"
+          [value]="store.invoiceNo()"
+          [attr.aria-invalid]="attempted() && !store.invoiceNo().trim() ? true : null"
+          (input)="setInvoiceNo(invoiceNo.value)"
+          (keydown.enter)="focusItems()"
+        />
+      </label>
+      <label class="field">
+        <span class="field-label">Invoice date <span class="req">*</span></span>
+        <input
+          #invoiceDate
+          type="date"
+          class="form-control"
+          [value]="store.invoiceDate()"
+          [max]="store.entryDate() || today"
+          [attr.aria-invalid]="
+            (attempted() && !store.invoiceDate()) ||
+            (store.invoiceDate() && store.entryDate() && store.invoiceDate() > store.entryDate())
+              ? true
+              : null
+          "
+          (change)="setInvoiceDate(invoiceDate.value)"
+        />
+      </label>
+    </div>
+  </section>
+
+  <!-- Items -->
+  <section class="card items-card" aria-label="Items received">
+    <div class="scan-bar">
+      <app-item-search
+        purpose="received"
+        rateLabel="Buy rate"
+        [rateOf]="purchaseRate"
+        (picked)="addItem($event)"
+      />
+      <p class="new-product">
+        New design not in the list yet?
+        <a routerLink="/masters/products/new" target="_blank" rel="noopener">
+          <app-icon name="plus-lg" /> New product
+        </a>
+        <span class="text-muted">(opens in a new tab — save it, then scan or search it here)</span>
+      </p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table po-table pe-table">
+        <thead>
+          <tr>
+            <th class="col-no">#</th>
+            <th>Item</th>
+            <th class="text-center">Qty</th>
+            <th class="text-end">Rate (₹)</th>
+            <th class="text-end">Disc %</th>
+            <th class="text-end">GST</th>
+            <th class="text-end">Amount (₹)</th>
+            <th class="text-end col-price">MRP (₹)</th>
+            <th class="text-end col-price">Sell (₹)</th>
+            <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of store.lines(); track line.key; let index = $index) {
+            <tr
+              [attr.data-line-key]="line.key"
+              [class.flash-odd]="line.bump % 2 === 1"
+              [class.flash-even]="line.bump % 2 === 0 && line.bump > 0"
+            >
+              <td class="col-no text-muted">{{ index + 1 }}</td>
+              <td class="col-item">
+                <div class="item-name">{{ line.item.productName }}</div>
+                @if (itemDetails(line.item); as details) {
+                  <div class="item-details">{{ details }}</div>
+                }
+                <div class="item-codes mono">
+                  {{ line.item.sku }}
+                  @if (line.item.hsnCode) {
+                    · HSN {{ line.item.hsnCode }}
+                  }
+                </div>
+                @if (line.item.stock !== undefined && !isEdit()) {
+                  <div class="in-stock" [class.is-negative]="line.item.stock < 0">
+                    In stock {{ line.item.stock | number: '1.0-3' }} → after this entry
+                    {{ line.item.stock + line.quantity | number: '1.0-3' }}
+                  </div>
+                }
+              </td>
+              <td class="text-center">
+                <div class="qty">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity <= 1"
+                    [attr.aria-label]="'One less ' + lineLabel(line)"
+                    (click)="store.step(line.key, -1)"
+                  >
+                    <app-icon name="dash-lg" />
+                  </button>
+                  <input
+                    #qty
+                    class="form-control qty-input"
+                    type="text"
+                    [attr.inputmode]="line.allowDecimals ? 'decimal' : 'numeric'"
+                    autocomplete="off"
+                    [value]="line.quantity"
+                    [attr.aria-label]="'Quantity received of ' + lineLabel(line)"
+                    [attr.aria-invalid]="fieldError('qty:' + line.key) ? true : null"
+                    [title]="line.allowDecimals ? 'Metres — decimals allowed' : ''"
+                    (focus)="qty.select()"
+                    (change)="commitQuantity(line, qty)"
+                    (keydown.enter)="commitAndScan(qty)"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-icon btn-sm"
+                    tabindex="-1"
+                    [disabled]="line.quantity >= maxQuantity"
+                    [attr.aria-label]="'One more ' + lineLabel(line)"
+                    (click)="store.step(line.key, 1)"
+                  >
+                    <app-icon name="plus-lg" />
+                  </button>
+                </div>
+                @if (fieldError('qty:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                } @else if (line.over > 0) {
+                  <div class="order-note is-over">
+                    <app-icon name="exclamation-triangle-fill" />
+                    +{{ line.over | number: '1.0-3' }} over PO
+                  </div>
+                } @else if (line.pending !== null) {
+                  <div class="order-note">
+                    of {{ line.pending | number: '1.0-3' }} to come · PO
+                    {{ line.ordered | number: '1.0-3' }}
+                  </div>
+                } @else if (store.order()) {
+                  <div class="order-note">Not on PO</div>
+                }
+              </td>
+              <td class="text-end">
+                <input
+                  #rate
+                  class="form-control rate-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="Rate"
+                  [value]="line.rate === null ? '' : (line.rate | number: '1.2-2' : 'en-US')"
+                  [attr.aria-label]="'Purchase rate of ' + lineLabel(line)"
+                  [attr.aria-invalid]="
+                    fieldError('rate:' + line.key) || (attempted() && !line.rate) ? true : null
+                  "
+                  (focus)="rate.select()"
+                  (change)="commitRate(line, rate)"
+                  (keydown.enter)="commitAndScan(rate)"
+                />
+                @if (fieldError('rate:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                }
+              </td>
+              <td class="text-end">
+                <input
+                  #disc
+                  class="form-control disc-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="0"
+                  [value]="line.discountPercent || ''"
+                  [attr.aria-label]="'Discount percent for ' + lineLabel(line)"
+                  [attr.aria-invalid]="fieldError('disc:' + line.key) ? true : null"
+                  (focus)="disc.select()"
+                  (change)="commitDiscount(line, disc)"
+                  (keydown.enter)="commitAndScan(disc)"
+                />
+                @if (fieldError('disc:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                }
+              </td>
+              <td class="text-end nowrap">
+                <div>{{ line.item.gstRate }}%</div>
+                <div class="xsmall text-muted">{{ line.taxAmount | number: '1.2-2' }}</div>
+              </td>
+              <td class="text-end nowrap">
+                <div class="fw-600">{{ line.amounts.lineTotal | number: '1.2-2' }}</div>
+                @if (line.amounts.discountAmount) {
+                  <div class="xsmall text-success">
+                    −{{ line.amounts.discountAmount | number: '1.2-2' }}
+                  </div>
+                }
+              </td>
+              <td class="text-end col-price">
+                <input
+                  #mrp
+                  class="form-control price-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="MRP"
+                  [value]="line.mrp === null ? '' : (line.mrp | number: '1.2-2' : 'en-US')"
+                  [attr.aria-label]="'MRP of ' + lineLabel(line)"
+                  [attr.aria-invalid]="
+                    fieldError('mrp:' + line.key) || (attempted() && line.mrp === null)
+                      ? true
+                      : null
+                  "
+                  (focus)="mrp.select()"
+                  (change)="commitMrp(line, mrp)"
+                  (keydown.enter)="commitAndScan(mrp)"
+                />
+                @if (fieldError('mrp:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                } @else if (line.mrp !== null && line.mrp !== line.item.mrp) {
+                  <div class="price-note">was {{ line.item.mrp | number: '1.2-2' }}</div>
+                }
+              </td>
+              <td class="text-end col-price">
+                <input
+                  #sell
+                  class="form-control price-input"
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="Price"
+                  [value]="
+                    line.sellingPrice === null
+                      ? ''
+                      : (line.sellingPrice | number: '1.2-2' : 'en-US')
+                  "
+                  [attr.aria-label]="'Selling price of ' + lineLabel(line)"
+                  [attr.aria-invalid]="
+                    fieldError('sell:' + line.key) ||
+                    (line.priceProblem && (attempted() || line.sellingPrice !== null))
+                      ? true
+                      : null
+                  "
+                  (focus)="sell.select()"
+                  (change)="commitSellingPrice(line, sell)"
+                  (keydown.enter)="commitAndScan(sell)"
+                />
+                @if (fieldError('sell:' + line.key); as message) {
+                  <div class="cell-error">{{ message }}</div>
+                } @else if (line.priceProblem && line.mrp !== null && line.sellingPrice !== null) {
+                  <div class="cell-error">{{ line.priceProblem }}</div>
+                } @else if (line.margin !== null) {
+                  <div
+                    class="price-note"
+                    [class.text-danger]="line.margin < 0"
+                    title="Margin on the selling price before GST, after the purchase discount"
+                  >
+                    Margin {{ line.margin | number: '1.0-1' }}%
+                  </div>
+                }
+              </td>
+              <td class="col-remove text-end">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon btn-sm is-danger"
+                  [attr.aria-label]="'Remove ' + lineLabel(line)"
+                  title="Remove"
+                  (click)="removeLine(line)"
+                >
+                  <app-icon name="trash3" />
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr class="empty-row">
+              <td colspan="10">
+                <div class="empty">
+                  @if (!store.order() && orderOptions().length) {
+                    <app-icon name="clipboard-check" class="empty-icon" />
+                    <p class="fw-600">Load the purchase order the goods came against</p>
+                    <p class="small text-muted">
+                      Its items still to come are filled in — then change what is different and
+                      save. Or scan / search the items for a purchase without a PO.
+                    </p>
+                    <div class="order-shortcuts">
+                      @for (option of orderOptions().slice(0, 6); track option.id) {
+                        <button
+                          type="button"
+                          class="btn btn-secondary btn-sm"
+                          [disabled]="orderBusy()"
+                          (click)="loadOrder(option.id)"
+                        >
+                          <app-icon name="box-arrow-in-right" /> {{ option.label }}
+                        </button>
+                      }
+                    </div>
+                    @if (orderOptions().length > 6) {
+                      <p class="xsmall text-muted">
+                        {{ orderOptions().length - 6 }} more in the Purchase order list above.
+                      </p>
+                    }
+                  } @else {
+                    <app-icon name="upc-scan" class="empty-icon" />
+                    <p class="fw-600">Scan or search the items received</p>
+                    <p class="small text-muted">
+                      Everything on the purchase order has been taken off? Choose another PO above,
+                      or add the items that arrived.
+                    </p>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Notes + totals -->
+  <div class="po-bottom">
+    <section class="card card-body">
+      <label class="field">
+        <span class="field-label">Notes</span>
+        <textarea
+          #notes
+          class="form-control notes-input"
+          rows="4"
+          maxlength="500"
+          placeholder="Transport, cartons, damages, short supply…"
+          [value]="store.notes()"
+          (input)="setNotes(notes.value)"
+        ></textarea>
+        <span class="field-hint">{{ store.notes().length }}/500</span>
+      </label>
+      @if (store.overLines().length || store.offOrderLines().length) {
+        <div class="order-summary" role="status">
+          @if (store.overLines().length; as count) {
+            <p class="is-over">
+              <app-icon name="exclamation-triangle-fill" />
+              {{ count }} {{ count === 1 ? 'item is' : 'items are' }} more than still to come on
+              {{ store.order()?.poNo }}.
+            </p>
+          }
+          @if (store.offOrderLines().length; as count) {
+            <p>
+              <app-icon name="info-circle-fill" />
+              {{ count }} {{ count === 1 ? 'item is' : 'items are' }} not on
+              {{ store.order()?.poNo }}.
+            </p>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="card card-body totals" aria-label="Totals">
+      @let t = store.totals();
+      <dl>
+        <div>
+          <dt>Items · Quantity</dt>
+          <dd>{{ t.itemCount }} · {{ t.totalQuantity | number: '1.0-3' }}</dd>
+        </div>
+        <div>
+          <dt>Gross</dt>
+          <dd>{{ t.grossAmount | number: '1.2-2' }}</dd>
+        </div>
+        @if (t.discountTotal) {
+          <div>
+            <dt>Discount</dt>
+            <dd class="text-success">−{{ t.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Taxable value</dt>
+          <dd>{{ t.taxableTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (store.supplyType() === 'inter') {
+          <div>
+            <dt>IGST</dt>
+            <dd>{{ t.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+        } @else {
+          <div>
+            <dt>CGST</dt>
+            <dd>{{ t.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>SGST</dt>
+            <dd>{{ t.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Round-off</dt>
+          <dd>{{ t.roundOff | number: '1.2-2' }}</dd>
+        </div>
+        <div class="grand">
+          <dt>Purchase total</dt>
+          <dd>₹{{ t.grandTotal | number: '1.2-2' }}</dd>
+        </div>
+      </dl>
+      <div class="bill-check">
+        <label class="field">
+          <span class="field-label">Supplier bill total (₹)</span>
+          <input
+            #bill
+            class="form-control bill-input"
+            type="text"
+            inputmode="decimal"
+            autocomplete="off"
+            placeholder="Optional — to check"
+            [value]="
+              store.billAmount() === null ? '' : (store.billAmount() | number: '1.2-2' : 'en-US')
+            "
+            [attr.aria-invalid]="fieldError('bill') ? true : null"
+            (focus)="bill.select()"
+            (change)="commitBillAmount(bill)"
+          />
+        </label>
+        @if (fieldError('bill'); as message) {
+          <p class="cell-error">{{ message }}</p>
+        } @else if (store.billDifference(); as difference) {
+          <p class="bill-result is-off" role="status">
+            <app-icon name="exclamation-triangle-fill" />
+            Differs by ₹{{ (difference < 0 ? -difference : difference) | number: '1.2-2' }} — the
+            bill is {{ difference > 0 ? 'more' : 'less' }}. Check the rates and quantities.
+          </p>
+        } @else if (store.billDifference() === 0 && !store.isEmpty()) {
+          <p class="bill-result is-ok" role="status">
+            <app-icon name="check-circle" /> Matches the supplier's bill.
+          </p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="form-actions-bar">
+    <span class="form-actions-note">
+      @if (saveError(); as message) {
+        <span class="text-danger" role="alert">
+          <app-icon name="exclamation-circle" /> {{ message }}
+        </span>
+      } @else if (store.hasUnsavedChanges()) {
+        <app-icon name="exclamation-circle" /> Unsaved changes · <kbd>F2</kbd> scan ·
+        <kbd>Ctrl</kbd>+<kbd>S</kbd> save
+      }
+    </span>
+    <a
+      class="btn btn-secondary"
+      [routerLink]="existing() ? ['/purchase/entries', existing()!.id] : '/purchase/entries'"
+    >
+      Cancel
+    </a>
+    <button type="button" class="btn btn-secondary" [disabled]="saving()" (click)="save(true)">
+      <app-icon name="upc" /> Save &amp; print labels
+    </button>
+    <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="save(false)">
+      @if (saving()) {
+        <span class="spinner" aria-hidden="true"></span> Saving…
+      } @else {
+        <app-icon name="check-circle" /> {{ isEdit() ? 'Save changes' : 'Save entry' }}
+      }
+    </button>
+  </div>
+}

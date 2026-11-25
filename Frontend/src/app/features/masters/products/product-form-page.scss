@@ -1,0 +1,20 @@
+.loading-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-title .app-icon {
+  color: var(--c-text-3);
+}
+
+.card-header .card-subtitle {
+  margin-top: 0;
+}
+
+.form-actions-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-warning) !important;
+}

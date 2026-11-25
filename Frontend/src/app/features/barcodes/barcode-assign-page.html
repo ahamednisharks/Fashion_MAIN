@@ -1,0 +1,436 @@
+<app-page-header
+  description="Give items a barcode and print price labels. Leave the barcode box empty to get the shop's next number, or scan the maker's barcode into it."
+>
+  <a routerLink="/masters/items" class="btn btn-ghost"><app-icon name="list-ul" /> Items</a>
+</app-page-header>
+
+<!-- Items to label -->
+<section class="card items-card" aria-label="Items to label">
+  <div class="scan-bar">
+    <app-item-search
+      purpose="labelled"
+      hint="Adding the same item again adds one more label."
+      (picked)="onPicked($event)"
+    />
+    <div class="bulk-add">
+      <span class="text-muted">Add all items without a barcode:</span>
+      <select
+        #bulkCategorySelect
+        class="form-control form-control-sm bulk-select"
+        aria-label="Category of items to add"
+        (change)="bulkCategory.set(bulkCategorySelect.value)"
+      >
+        <option value="">All categories</option>
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+      <select
+        #bulkBrandSelect
+        class="form-control form-control-sm bulk-select"
+        aria-label="Brand of items to add"
+        (change)="bulkBrand.set(bulkBrandSelect.value)"
+      >
+        <option value="">All brands</option>
+        @for (brand of brands(); track brand.id) {
+          <option [value]="brand.id">{{ brand.name }}</option>
+        }
+      </select>
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        [disabled]="bulkBusy()"
+        (click)="addWithoutBarcode()"
+      >
+        @if (bulkBusy()) {
+          <span class="spinner" aria-hidden="true"></span>
+        } @else {
+          <app-icon name="plus-lg" />
+        }
+        Add
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table barcode-table">
+      <thead>
+        <tr>
+          <th class="col-no">#</th>
+          <th>Item</th>
+          <th class="col-barcode">Barcode</th>
+          <th class="col-copies text-center">Labels</th>
+          <th class="col-remove"><span class="visually-hidden">Remove</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of store.rows(); track row.key) {
+          <tr
+            [attr.data-row]="row.index"
+            [class.flash-odd]="row.bump % 2 === 1"
+            [class.flash-even]="row.bump % 2 === 0 && row.bump > 0"
+            [class.has-error]="row.error"
+          >
+            <td class="col-no text-muted">{{ row.index + 1 }}</td>
+            <td class="col-item">
+              <div class="item-name">
+                {{ row.item.productName }}
+                @if (row.item.status !== 'active') {
+                  <span class="badge badge-muted">Inactive</span>
+                }
+              </div>
+              @if (row.details) {
+                <div class="item-details">
+                  @if (row.item.colorHex) {
+                    <span class="swatch swatch-sm" [style.background]="row.item.colorHex"></span>
+                  }
+                  {{ row.details }}
+                </div>
+              }
+              <div class="item-codes mono">
+                {{ row.item.sku }} · MRP ₹{{ row.item.mrp | number: '1.2-2' }}
+              </div>
+            </td>
+            <td class="col-barcode">
+              @if (row.printable) {
+                <div class="barcode-set">
+                  <app-icon name="check-circle-fill" class="text-success" />
+                  <span class="mono">{{ row.current }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm"
+                    [attr.aria-label]="'Change the barcode of ' + row.item.productName"
+                    (click)="startReplacing(row)"
+                  >
+                    Change
+                  </button>
+                </div>
+              } @else {
+                <input
+                  #barcodeInput
+                  class="form-control form-control-sm mono barcode-input"
+                  type="text"
+                  maxlength="48"
+                  autocomplete="off"
+                  spellcheck="false"
+                  [placeholder]="
+                    row.current ? 'Auto — new shop number' : 'Auto — or scan maker’s barcode'
+                  "
+                  [value]="row.entered"
+                  [attr.aria-label]="'New barcode for ' + row.item.productName"
+                  [attr.aria-invalid]="row.error ? true : null"
+                  (input)="onEntered(row, barcodeInput.value)"
+                  (blur)="checkTaken(row)"
+                  (keydown.enter)="onBarcodeEnter($event, row)"
+                />
+                @if (row.current) {
+                  <div class="cell-note">
+                    Replaces <span class="mono">{{ row.current }}</span> — old tags stop scanning.
+                    <button type="button" class="link-btn" (click)="keepBarcode(row)">
+                      Keep it
+                    </button>
+                  </div>
+                } @else if (row.willGenerate) {
+                  <div class="cell-note">Gets the next shop number when saved.</div>
+                }
+              }
+              @if (row.error; as message) {
+                <div class="cell-error" role="alert">{{ message }}</div>
+              } @else if (row.warning; as message) {
+                <div class="cell-warning">{{ message }}</div>
+              }
+            </td>
+            <td class="col-copies text-center">
+              <input
+                #copiesInput
+                class="form-control form-control-sm copies-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                [max]="maxCopies"
+                step="1"
+                [value]="row.copies"
+                [attr.aria-label]="'Labels to print for ' + row.item.productName"
+                (focus)="copiesInput.select()"
+                (change)="setCopies(row, copiesInput.value)"
+              />
+            </td>
+            <td class="col-remove">
+              <button
+                type="button"
+                class="btn btn-ghost btn-icon btn-sm"
+                title="Remove from the list"
+                [attr.aria-label]="'Remove ' + row.item.productName + ' from the list'"
+                (click)="remove(row)"
+              >
+                <app-icon name="x-lg" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr class="empty-row">
+            <td colspan="5">
+              <div class="empty">
+                <app-icon name="upc-scan" class="empty-icon" />
+                <p class="fw-600">No items on the list yet</p>
+                <p class="small text-muted">
+                  Scan or search an item above, add every item without a barcode, or tick items on
+                  the <a routerLink="/masters/items">Items</a> screen.
+                </p>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (store.count()) {
+    <div class="list-tools">
+      <label class="all-copies">
+        Labels for every item
+        <input
+          #allCopies
+          class="form-control form-control-sm copies-input"
+          type="number"
+          min="0"
+          [max]="maxCopies"
+          value="1"
+          aria-label="Labels for every item"
+        />
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          (click)="setAllCopies(allCopies.value)"
+        >
+          Set
+        </button>
+      </label>
+      <button type="button" class="btn btn-ghost btn-sm" (click)="clearList()">
+        <app-icon name="trash3" /> Clear list
+      </button>
+    </div>
+  }
+</section>
+
+@if (saveError(); as message) {
+  <div class="alert alert-danger" role="alert">
+    <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+  </div>
+}
+
+<!-- Save / print bar -->
+<div class="form-actions-bar">
+  <span class="form-actions-note">
+    @if (store.toSaveCount()) {
+      <app-icon name="exclamation-circle" />
+      {{ store.toSaveCount() }} to save
+      @if (store.toGenerateCount()) {
+        ({{ store.toGenerateCount() }} new shop number{{
+          store.toGenerateCount() === 1 ? '' : 's'
+        }})
+      }
+      · labels print after saving
+    } @else if (store.count()) {
+      {{ store.labelCount() }} label{{ store.labelCount() === 1 ? '' : 's' }} to print
+    }
+  </span>
+  <button
+    type="button"
+    class="btn btn-primary"
+    [disabled]="!store.toSaveCount() || saving()"
+    (click)="save()"
+  >
+    @if (saving()) {
+      <span class="spinner" aria-hidden="true"></span> Saving…
+    } @else {
+      <app-icon name="check-circle" /> Save barcodes
+    }
+  </button>
+  <button
+    type="button"
+    class="btn btn-secondary"
+    [disabled]="!store.labelCount()"
+    (click)="print()"
+  >
+    <app-icon name="printer" /> Print labels ({{ store.labelCount() }})
+  </button>
+</div>
+
+<!-- Label stock, contents and preview -->
+<section class="card label-card" aria-label="Labels">
+  <header class="card-header">
+    <h2 class="card-title"><app-icon name="tags" /> Labels</h2>
+    <p class="card-subtitle">
+      @if (settings(); as current) {
+        Next shop barcode: <span class="mono">{{ current.nextBarcode || '—' }}</span>
+      } @else if (settingsError(); as message) {
+        <span class="text-danger">{{ message }}</span>
+      }
+    </p>
+  </header>
+  <div class="card-body label-body">
+    <div class="label-options">
+      <fieldset class="option-group">
+        <legend class="field-label">Label stock</legend>
+        @for (layout of layouts; track layout.id) {
+          <label class="radio-option" [class.is-selected]="options().labelLayout === layout.id">
+            <input
+              type="radio"
+              name="labelLayout"
+              [value]="layout.id"
+              [checked]="options().labelLayout === layout.id"
+              (change)="setLayout(layout.id)"
+            />
+            <span>
+              <span class="fw-600">{{ layout.name }}</span>
+              <span class="option-hint">{{ layout.hint }}</span>
+            </span>
+          </label>
+        }
+      </fieldset>
+
+      @if (spec().sheet) {
+        <label class="field start-at">
+          <span class="field-label">Start at label</span>
+          <input
+            #startInput
+            class="form-control form-control-sm"
+            type="number"
+            min="1"
+            [max]="spec().perPage"
+            [value]="startAt()"
+            (change)="setStartAt(startInput.value)"
+          />
+          <span class="field-hint"
+            >Skip labels already used on the first sheet (1–{{ spec().perPage }}).</span
+          >
+        </label>
+      }
+
+      <fieldset class="option-group">
+        <legend class="field-label">Print on the label</legend>
+        <label class="check">
+          <input
+            #shopCheck
+            type="checkbox"
+            [checked]="options().showShopName"
+            (change)="setOption('showShopName', shopCheck.checked)"
+          />
+          Shop name
+          @if (!shopName()) {
+            <span class="small text-muted">(set it in Settings)</span>
+          }
+        </label>
+        <label class="check">
+          <input
+            #nameCheck
+            type="checkbox"
+            [checked]="options().showProductName"
+            (change)="setOption('showProductName', nameCheck.checked)"
+          />
+          Product name
+        </label>
+        <label class="check">
+          <input
+            #detailsCheck
+            type="checkbox"
+            [checked]="options().showDetails"
+            (change)="setOption('showDetails', detailsCheck.checked)"
+          />
+          Design · size · colour
+        </label>
+        <label class="check">
+          <input
+            #mrpCheck
+            type="checkbox"
+            [checked]="options().showMrp"
+            (change)="setOption('showMrp', mrpCheck.checked)"
+          />
+          MRP (incl. of all taxes)
+        </label>
+        <label class="check">
+          <input
+            #priceCheck
+            type="checkbox"
+            [checked]="options().showSellingPrice"
+            (change)="setOption('showSellingPrice', priceCheck.checked)"
+          />
+          Selling price (when lower than MRP)
+        </label>
+      </fieldset>
+
+      @if (isAdmin()) {
+        <label class="field prefix-field">
+          <span class="field-label">Shop barcode prefix</span>
+          <input
+            #prefixInput
+            class="form-control form-control-sm mono"
+            type="text"
+            inputmode="numeric"
+            maxlength="3"
+            [value]="prefix()"
+            [attr.aria-invalid]="prefixValid() ? null : true"
+            (input)="prefix.set(prefixInput.value.trim())"
+          />
+          <span class="field-hint" [class.text-danger]="!prefixValid()">
+            200–299 (the in-store range). Numbering continues; barcodes already printed keep
+            working.
+          </span>
+        </label>
+        <div class="settings-actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            [disabled]="!optionsChanged() || !prefixValid() || savingSettings()"
+            (click)="saveSettings()"
+          >
+            @if (savingSettings()) {
+              <span class="spinner" aria-hidden="true"></span>
+            } @else {
+              <app-icon name="save" />
+            }
+            Save as default
+          </button>
+          @if (optionsChanged()) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="resetSettings()">
+              Undo changes
+            </button>
+          }
+        </div>
+      } @else if (optionsChanged()) {
+        <p class="small text-muted">
+          These changes apply to this print only — an administrator can save the defaults.
+        </p>
+      }
+    </div>
+
+    <div class="label-preview">
+      <span class="field-label">
+        Preview (2× size){{ previewIsSample() ? ' — sample item' : '' }}
+      </span>
+      <div class="preview-frame">
+        <app-price-label
+          class="preview-label"
+          [data]="previewLabel()"
+          [options]="options()"
+          [spec]="spec()"
+          [shopName]="shopName()"
+        />
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" (click)="printTest()">
+        <app-icon name="printer" /> Print one test label
+      </button>
+      <p class="small text-muted">
+        In the print dialog choose the label printer, set margins to none and scale to 100%.
+      </p>
+    </div>
+  </div>
+</section>
+
+<app-label-sheet
+  [labels]="printLabels()"
+  [options]="options()"
+  [shopName]="shopName()"
+  [startAt]="startAt()"
+/>

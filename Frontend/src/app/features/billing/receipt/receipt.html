@@ -1,0 +1,151 @@
+@let bill = invoice();
+<article class="receipt" aria-label="Printed bill">
+  <header class="center">
+    @if (logo()) {
+      <img class="logo" [src]="logo()" alt="" />
+    }
+    <h1 class="shop-name">{{ bill.seller.shopName || 'Tax Invoice' }}</h1>
+    @if (sellerAddress()) {
+      <p>{{ sellerAddress() }}</p>
+    }
+    @if (bill.seller.phone) {
+      <p>Ph: {{ bill.seller.phone }}</p>
+    }
+    @if (bill.seller.gstNumber) {
+      <p>GSTIN: {{ bill.seller.gstNumber }}</p>
+    }
+  </header>
+
+  <p class="title center">{{ bill.seller.gstNumber ? 'TAX INVOICE' : 'BILL' }}</p>
+
+  <div class="meta">
+    <p class="row">
+      <span
+        >Bill No: <b>{{ bill.invoiceNo }}</b></span
+      >
+    </p>
+    <p class="row">
+      <span>Date: {{ bill.createdAt | date: 'dd-MM-yyyy hh:mm a' }}</span>
+    </p>
+    @if (bill.customerName) {
+      <p>Customer: {{ bill.customerName }} ({{ bill.customerMobile }})</p>
+      @if (bill.customerGstNumber) {
+        <p>GSTIN: {{ bill.customerGstNumber }}</p>
+      }
+    }
+    @if (bill.supplyType === 'inter') {
+      <p>Place of supply: {{ bill.customerState }}</p>
+    }
+  </div>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th class="left">Item</th>
+        <th>Qty</th>
+        <th>Rate</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of bill.items; track item.lineNo) {
+        <tr class="item-name">
+          <td colspan="4">
+            {{ item.lineNo }}. {{ item.productName }}
+            @if (itemDetails(item); as details) {
+              <span class="muted">({{ details }})</span>
+            }
+          </td>
+        </tr>
+        <tr class="item-amounts">
+          <td class="left muted">
+            HSN {{ item.hsnCode || '—' }} · GST {{ item.gstRate }}%
+            @if (item.discountPercent) {
+              · Disc {{ item.discountPercent }}%
+            }
+          </td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.unitPrice | number: '1.2-2' }}</td>
+          <td>{{ item.lineTotal | number: '1.2-2' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <p class="row">
+      <span>Items {{ bill.itemCount }} · Qty {{ bill.totalQuantity }}</span>
+      <span>{{ bill.grossAmount | number: '1.2-2' }}</span>
+    </p>
+    @if (bill.discountTotal) {
+      <p class="row">
+        <span>Discount</span><span>-{{ bill.discountTotal | number: '1.2-2' }}</span>
+      </p>
+    }
+    @if (bill.roundOff) {
+      <p class="row">
+        <span>Round off</span><span>{{ bill.roundOff | number: '1.2-2' }}</span>
+      </p>
+    }
+    <p class="row grand">
+      <span>NET AMOUNT</span><span>₹{{ bill.grandTotal | number: '1.2-2' }}</span>
+    </p>
+  </div>
+
+  <table class="tax">
+    <thead>
+      <tr>
+        <th class="left">GST</th>
+        <th>Taxable</th>
+        @if (bill.supplyType === 'inter') {
+          <th>IGST</th>
+        } @else {
+          <th>CGST</th>
+          <th>SGST</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of taxRows(); track row.gstRate) {
+        <tr>
+          <td class="left">{{ row.gstRate }}%</td>
+          <td>{{ row.taxableValue | number: '1.2-2' }}</td>
+          @if (bill.supplyType === 'inter') {
+            <td>{{ row.igst | number: '1.2-2' }}</td>
+          } @else {
+            <td>{{ row.cgst | number: '1.2-2' }}</td>
+            <td>{{ row.sgst | number: '1.2-2' }}</td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="payments">
+    @for (payment of bill.payments; track $index) {
+      <p class="row">
+        <span>
+          Paid by {{ modeLabels[payment.mode] }}
+          @if (payment.reference) {
+            ({{ payment.reference }})
+          }
+        </span>
+        <span>{{ payment.amount | number: '1.2-2' }}</span>
+      </p>
+    }
+    @if (bill.changeReturned) {
+      <p class="row">
+        <span>Change returned</span><span>{{ bill.changeReturned | number: '1.2-2' }}</span>
+      </p>
+    }
+  </div>
+
+  <footer class="center">
+    @if (savings() > 0) {
+      <p class="saved">You saved ₹{{ savings() | number: '1.2-2' }} on MRP</p>
+    }
+    <p>Prices are inclusive of GST.</p>
+    <p>Billed by {{ bill.createdByName }}</p>
+    <p class="thanks">Thank you! Visit again.</p>
+  </footer>
+</article>

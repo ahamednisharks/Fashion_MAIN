@@ -1,0 +1,228 @@
+@if (error(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the stock adjustment"
+      [message]="message"
+      (retry)="load(id())"
+    >
+      <a routerLink="/masters/stock-adjustment" class="btn btn-secondary btn-sm">All adjustments</a>
+    </app-error-state>
+  </section>
+} @else if (loading() && !adjustment()) {
+  <section class="card card-body">
+    <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+  </section>
+} @else if (adjustment(); as adjustment) {
+  <app-page-header class="no-print">
+    <a routerLink="/masters/stock-adjustment" class="btn btn-secondary">
+      <app-icon name="arrow-left" /> All adjustments
+    </a>
+    @if (posted()) {
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        [disabled]="cancelling()"
+        (click)="cancelAdjustment(adjustment)"
+      >
+        <app-icon name="x-circle" /> Cancel adjustment
+      </button>
+    }
+    <a class="btn btn-secondary" routerLink="/masters/stock-adjustment/new">
+      <app-icon name="plus-lg" /> New
+    </a>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="downloading()"
+      (click)="downloadPdf(adjustment)"
+    >
+      @if (downloading()) {
+        <span class="spinner" aria-hidden="true"></span> Creating PDF…
+      } @else {
+        <app-icon name="download" /> Download PDF
+      }
+    </button>
+    <button type="button" class="btn btn-primary" (click)="printAdjustment()">
+      <app-icon name="printer" /> Print
+    </button>
+  </app-page-header>
+
+  @if (adjustment.status === 'cancelled') {
+    <div class="alert alert-danger cancelled-note no-print" role="status">
+      <app-icon name="slash-circle" />
+      <span>
+        This adjustment was cancelled
+        @if (adjustment.cancelledAt) {
+          on {{ adjustment.cancelledAt | date: 'dd MMM y, hh:mm a' }}
+        }
+        @if (adjustment.cancelledByName) {
+          by {{ adjustment.cancelledByName }}
+        }
+        — its stock changes have been reversed.
+      </span>
+    </div>
+  }
+
+  <article class="card po-doc">
+    <header class="doc-head">
+      <div class="shop">
+        @if (logo()) {
+          <img class="shop-logo" [src]="logo()" alt="" />
+        }
+        <h1 class="shop-name">{{ shop()?.shopName || 'Your shop' }}</h1>
+        @if (shopAddress()) {
+          <p>{{ shopAddress() }}</p>
+        }
+        <p>
+          @if (shop()?.phone) {
+            Phone <span class="mono">{{ shop()?.phone }}</span>
+          }
+          @if (shop()?.gstNumber) {
+            · GSTIN <span class="mono">{{ shop()?.gstNumber }}</span>
+          }
+        </p>
+      </div>
+      <div class="doc-title">
+        <h2>STOCK ADJUSTMENT</h2>
+        <dl>
+          <div>
+            <dt>ADJ No</dt>
+            <dd class="mono fw-600">{{ adjustment.adjNo }}</dd>
+          </div>
+          <div>
+            <dt>Date</dt>
+            <dd>{{ adjustment.adjustmentDate | date: 'dd MMM y' }}</dd>
+          </div>
+          <div>
+            <dt>Reason</dt>
+            <dd>{{ reasonLabels[adjustment.reason] }}</dd>
+          </div>
+          <div>
+            <dt>Entered as</dt>
+            <dd>{{ modeLabels[adjustment.mode] }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span [class]="'badge ' + statusBadge(adjustment.status)">
+                {{ statusLabels[adjustment.status] }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <div class="table-wrap lines-wrap">
+      <table class="data-table doc-table adj-doc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th class="text-end">In stock</th>
+            @if (adjustment.mode === 'count') {
+              <th class="text-end">Counted</th>
+            }
+            <th class="text-end">Change</th>
+            <th class="text-end">After</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of adjustment.items; track item.lineNo) {
+            <tr>
+              <td class="text-muted">{{ item.lineNo }}</td>
+              <td>
+                <div class="fw-600">{{ item.productName }}</div>
+                @if (itemDetails(item); as details) {
+                  <div class="small">{{ details }}</div>
+                }
+                <div class="xsmall text-muted mono">{{ item.sku }}</div>
+                @if (item.note) {
+                  <div class="xsmall line-note">{{ item.note }}</div>
+                }
+              </td>
+              <td class="text-end" [class.text-danger]="item.systemQuantity < 0">
+                {{ item.systemQuantity | number: '1.0-3' }}
+              </td>
+              @if (adjustment.mode === 'count') {
+                <td class="text-end">{{ item.countedQuantity ?? 0 | number: '1.0-3' }}</td>
+              }
+              <td
+                class="text-end nowrap"
+                [class.text-success]="item.quantity > 0"
+                [class.text-danger]="item.quantity < 0"
+                [class.fw-600]="item.quantity !== 0"
+              >
+                @if (item.quantity === 0) {
+                  <span class="text-muted">Matches</span>
+                } @else {
+                  {{ item.quantity > 0 ? '+' : '−' }}{{ absolute(item.quantity) | number: '1.0-3' }}
+                }
+              </td>
+              <td class="text-end">{{ after(item) | number: '1.0-3' }}</td>
+              <td class="text-end">
+                {{ item.unitCost === null ? '—' : (item.unitCost | number: '1.2-2') }}
+              </td>
+              <td class="text-end nowrap">
+                @if (item.unitCost === null) {
+                  —
+                } @else {
+                  {{ item.value < 0 ? '−' : item.value > 0 ? '+' : ''
+                  }}{{ absolute(item.value) | number: '1.2-2' }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <section class="doc-bottom">
+      <div class="notes">
+        @if (adjustment.notes) {
+          <h3>Notes</h3>
+          <p class="pre-line">{{ adjustment.notes }}</p>
+        }
+        <p class="small text-muted">
+          {{ adjustment.itemCount }} {{ adjustment.itemCount === 1 ? 'item' : 'items' }} ·
+          @if (adjustment.mode === 'count') {
+            Change = counted − in stock when saved
+          } @else {
+            Change = quantity added (+) or taken out (−)
+          }
+          · Cost per piece excludes GST
+        </p>
+      </div>
+      <dl class="doc-totals">
+        <div>
+          <dt>Into stock</dt>
+          <dd>
+            {{ adjustment.quantityIn ? '+' : '' }}{{ adjustment.quantityIn | number: '1.0-3' }}
+            <span class="text-muted small">· ₹{{ adjustment.valueIn | number: '1.2-2' }}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Out of stock</dt>
+          <dd>
+            {{ adjustment.quantityOut ? '−' : '' }}{{ adjustment.quantityOut | number: '1.0-3' }}
+            <span class="text-muted small">· ₹{{ adjustment.valueOut | number: '1.2-2' }}</span>
+          </dd>
+        </div>
+        <div class="grand">
+          <dt>Net value</dt>
+          <dd>{{ netValue() < 0 ? '−' : '' }}₹{{ absolute(netValue()) | number: '1.2-2' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <footer class="doc-foot">
+      <span class="small text-muted">
+        Entered by {{ adjustment.createdByName }} on
+        {{ adjustment.createdAt | date: 'dd MMM y, hh:mm a' }}
+      </span>
+      <span class="signature">Checked by</span>
+    </footer>
+  </article>
+}

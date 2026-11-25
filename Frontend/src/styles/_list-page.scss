@@ -1,0 +1,68 @@
+@use 'mixins' as *;
+
+// ---- List pages: the pagination footer sits at the bottom of the window ------------------------
+//
+// Usage: `host: { class: 'list-page' }` on the page component and `class="card list-card"` on the
+// card that holds the filters, the table and the pagination.
+//
+// From tablets up the page fits the window: page header, filters and pagination stay in place
+// and only the table rows scroll (column headings stick to the top of the table). Phones keep
+// normal page scrolling. Works with a plain `.table-wrap` and with `<app-data-table>`.
+// (Items, Purchase Entry, Stock Adjustment and Stock Report have their own copy of these rules.)
+@include up(md) {
+  .list-page {
+    display: flex;
+    flex-direction: column;
+    // Window minus the app header and the content area's top (20px) and bottom (24px) padding.
+    height: calc(100dvh - var(--header-h) - 44px);
+    min-height: 420px;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    > .list-card {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+  }
+
+  .list-card {
+    > *,
+    > app-data-table > * {
+      flex-shrink: 0;
+    }
+
+    // The table area takes the free height (pushing the pagination down) and scrolls when the
+    // rows don't fit.
+    > app-data-table {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    > .table-wrap,
+    > app-data-table > .table-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .table-wrap > .data-table > thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+  }
+}
+
+// ---- Pagination inside a .card-footer --------------------------------------------------------
+// <app-pagination> draws its own top border and padding. A .card-footer around it added a second
+// border and padding, so the footer showed two lines (the inner one indented).
+.card-footer:has(> app-pagination) {
+  padding: 0;
+  border-top: 0;
+}

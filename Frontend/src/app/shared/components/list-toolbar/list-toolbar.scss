@@ -1,0 +1,109 @@
+@use 'mixins' as *;
+
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  // Brand-coloured band across the top of the list card (same colour as the primary buttons).
+  // Always the card's first child, so it follows the card's rounded top corners.
+  border-bottom: 1px solid var(--c-primary);
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+  background: var(--c-primary);
+
+  @include up(md) {
+    flex-wrap: nowrap;
+    padding: 12px 16px;
+  }
+
+  // Inputs and selects (including projected filters) stay white; the default teal focus ring
+  // would vanish against the band, so use a light ring instead.
+  ::ng-deep .form-control {
+    border-color: transparent;
+
+    &:focus {
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  ::ng-deep :focus-visible {
+    outline-color: #fff;
+  }
+}
+
+.toolbar-search {
+  position: relative;
+  flex: 1 1 100%;
+  min-width: 0;
+
+  @include up(md) {
+    flex: 0 1 360px;
+  }
+
+  .form-control {
+    padding-left: 34px;
+    padding-right: 34px;
+  }
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  color: var(--c-text-3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  padding: 5px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--c-placeholder);
+  transform: translateY(-50%);
+
+  &:hover {
+    color: var(--c-text-2);
+  }
+}
+
+.toolbar-filters {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  @include up(md) {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  // Projected and built-in selects share space evenly on phones.
+  ::ng-deep .filter-select {
+    flex: 1 1 140px;
+    min-width: 0;
+
+    @include up(md) {
+      flex: 0 1 180px;
+    }
+  }
+}
+
+.clear-btn.btn-ghost {
+  flex-shrink: 0;
+  color: #fff;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+  }
+}

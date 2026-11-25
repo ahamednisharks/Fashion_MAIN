@@ -1,0 +1,106 @@
+@if (showSkeleton()) {
+  <div class="table-skeleton" aria-busy="true" aria-label="Loading">
+    @for (row of skeletonRows; track row) {
+      <div class="skeleton-row">
+        <span class="skeleton" style="width: 32%"></span>
+        <span class="skeleton hide-mobile" style="width: 22%"></span>
+        <span class="skeleton" style="width: 14%"></span>
+        <span class="skeleton hide-mobile" style="width: 10%"></span>
+      </div>
+    }
+  </div>
+} @else if (error(); as message) {
+  <app-error-state [message]="message" (retry)="retry.emit()" />
+} @else if (rows().length === 0) {
+  @if (filtered()) {
+    <app-empty-state
+      icon="search"
+      [heading]="'No matching ' + entityName()"
+      message="Try a different search term or clear the filters."
+    >
+      <button type="button" class="btn btn-secondary btn-sm" (click)="clearFilters.emit()">
+        Clear filters
+      </button>
+    </app-empty-state>
+  } @else {
+    <app-empty-state [heading]="'No ' + entityName() + ' yet'" [message]="emptyMessage()">
+      @if (createLabel()) {
+        <button type="button" class="btn btn-primary btn-sm" (click)="create.emit()">
+          <app-icon name="plus-lg" /> {{ createLabel() }}
+        </button>
+      }
+    </app-empty-state>
+  }
+} @else {
+  <div class="table-wrap" [class.is-refreshing]="loading()" [attr.aria-busy]="loading()">
+    <table class="data-table is-stacked">
+      <thead>
+        <tr>
+          @for (column of columns(); track column.key) {
+            <th
+              scope="col"
+              [class]="headerClass(column)"
+              [style.width]="column.width ?? null"
+              [attr.aria-sort]="ariaSort(column)"
+            >
+              @if (column.sortable) {
+                <button type="button" class="sort-btn" (click)="toggleSort(column)">
+                  {{ column.label }}
+                  <app-icon class="sort-icon" [name]="sortIcon(column)" />
+                </button>
+              } @else {
+                {{ column.label }}
+              }
+            </th>
+          }
+          @if (actions().length) {
+            <th scope="col" class="col-actions"><span class="visually-hidden">Actions</span></th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of view(); track item.row.id) {
+          <tr [class.is-inactive]="item.row.status === 'inactive'">
+            @for (cell of item.cells; track cell.column.key) {
+              <td [attr.data-label]="cell.column.label" [class]="cell.cssClass">
+                @if (cell.template) {
+                  <ng-container
+                    [ngTemplateOutlet]="cell.template"
+                    [ngTemplateOutletContext]="{ $implicit: item.row }"
+                  />
+                } @else if (cell.column.type === 'status') {
+                  <app-status-badge [status]="item.row.status" />
+                } @else if (cell.column.link) {
+                  <button type="button" class="cell-link" (click)="emit('view', item.row)">
+                    {{ cell.text }}
+                  </button>
+                } @else {
+                  {{ cell.text }}
+                }
+              </td>
+            }
+            @if (actions().length) {
+              <td class="cell-actions">
+                <div class="row-actions">
+                  @for (action of actions(); track action) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm row-action"
+                      [class.is-danger]="action === 'delete'"
+                      [attr.title]="actionLabel(action, item.row)"
+                      [attr.aria-label]="actionLabel(action, item.row) + ' ' + item.label"
+                      (click)="emit(action, item.row)"
+                    >
+                      <app-icon [name]="actionIcon(action, item.row)" />
+                      <span class="row-action-label">{{ actionLabel(action, item.row) }}</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

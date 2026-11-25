@@ -1,0 +1,321 @@
+<app-page-header
+  description="Every item you sell — one row per size / colour variant. Search also matches SKUs, barcodes and design numbers."
+>
+  <a routerLink="/masters/barcodes" class="btn btn-secondary"
+    ><app-icon name="upc" /> Barcode Assign</a
+  >
+  <a routerLink="/masters/products/new" class="btn btn-primary"
+    ><app-icon name="plus-lg" /> Add Product</a
+  >
+</app-page-header>
+
+@if (counts(); as count) {
+  <div class="item-stats" aria-label="Item counts">
+    <span
+      ><strong>{{ count.total | number }}</strong> item{{ count.total === 1 ? '' : 's' }}</span
+    >
+    <span class="text-muted">·</span>
+    <span
+      ><strong>{{ count.active | number }}</strong> active</span
+    >
+    <span class="text-muted">·</span>
+    @if (count.missingBarcode) {
+      <button type="button" class="stat-link" (click)="showMissing()">
+        <app-icon name="exclamation-circle" />
+        <strong>{{ count.missingBarcode | number }}</strong> without a barcode
+      </button>
+    } @else {
+      <span class="text-success"
+        ><app-icon name="check-circle" /> All active items have a barcode</span
+      >
+    }
+    @if (count.belowZero) {
+      <span class="text-muted">·</span>
+      <button
+        type="button"
+        class="stat-link is-danger"
+        title="Sold before being entered — they need opening stock"
+        (click)="showBelowZero()"
+      >
+        <app-icon name="exclamation-circle" />
+        <strong>{{ count.belowZero | number }}</strong> below zero stock
+      </button>
+      @if (isAdmin()) {
+        <a
+          class="stat-action"
+          routerLink="/masters/stock-adjustment/new"
+          [queryParams]="{ preset: 'below-zero' }"
+          title="Count these items and enter them as opening stock (Stock Adjustment)"
+          ><app-icon name="layers" /> Enter opening stock</a
+        >
+      }
+    }
+  </div>
+}
+
+<section class="card items-card" aria-label="Items">
+  <app-list-toolbar
+    placeholder="Search name, SKU, barcode, design no."
+    [search]="list.query().search"
+    [status]="list.query().status"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (statusChange)="list.setStatus($event)"
+    (clear)="list.clearFilters()"
+  >
+    <select
+      #barcodeSelect
+      class="form-control filter-select"
+      aria-label="Filter by barcode"
+      (change)="list.setFilter('barcode', barcodeSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('barcode')">Any barcode</option>
+      <option value="missing" [selected]="list.filterValue('barcode') === 'missing'">
+        Without barcode
+      </option>
+      <option value="assigned" [selected]="list.filterValue('barcode') === 'assigned'">
+        With barcode
+      </option>
+    </select>
+    <select
+      #stockSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by stock"
+      (change)="list.setFilter('stock', stockSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('stock')">Any stock</option>
+      <option value="in" [selected]="list.filterValue('stock') === 'in'">In stock</option>
+      <option value="out" [selected]="list.filterValue('stock') === 'out'">Out of stock</option>
+      <option value="negative" [selected]="list.filterValue('stock') === 'negative'">
+        Below zero
+      </option>
+    </select>
+    <select
+      #categorySelect
+      class="form-control filter-select"
+      aria-label="Filter by category"
+      (change)="list.setFilter('categoryId', categorySelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('categoryId')">All categories</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id" [selected]="list.filterValue('categoryId') === category.id">
+          {{ category.name }}
+        </option>
+      }
+    </select>
+    <select
+      #brandSelect
+      class="form-control filter-select"
+      aria-label="Filter by brand"
+      (change)="list.setFilter('brandId', brandSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('brandId')">All brands</option>
+      @for (brand of brands(); track brand.id) {
+        <option [value]="brand.id" [selected]="list.filterValue('brandId') === brand.id">
+          {{ brand.name }}
+        </option>
+      }
+    </select>
+    <select
+      #sizeSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by size"
+      (change)="list.setFilter('sizeId', sizeSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('sizeId')">All sizes</option>
+      @for (size of sizes(); track size.id) {
+        <option [value]="size.id" [selected]="list.filterValue('sizeId') === size.id">
+          {{ size.name }}
+        </option>
+      }
+    </select>
+    <select
+      #colorSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by colour"
+      (change)="list.setFilter('colorId', colorSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('colorId')">All colours</option>
+      @for (color of colors(); track color.id) {
+        <option [value]="color.id" [selected]="list.filterValue('colorId') === color.id">
+          {{ color.name }}
+        </option>
+      }
+    </select>
+  </app-list-toolbar>
+
+  @if (selectedCount()) {
+    <div class="selection-bar" role="region" aria-label="Selected items">
+      <span class="fw-600">{{ selectedCount() }} selected</span>
+      <button type="button" class="btn btn-primary btn-sm" (click)="openBarcodes()">
+        <app-icon name="upc" /> Barcodes &amp; labels
+      </button>
+      <button type="button" class="btn btn-ghost btn-sm" (click)="clearSelection()">
+        <app-icon name="x-lg" /> Clear selection
+      </button>
+    </div>
+  }
+
+  @if (list.error(); as message) {
+    <app-error-state heading="Couldn't load items" [message]="message" (retry)="list.reload()" />
+  } @else if (!list.loading() && !list.items().length) {
+    @if (list.hasFilters()) {
+      <app-empty-state icon="search" heading="No items match these filters">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="list.clearFilters()">
+          Clear filters
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="box-seam"
+        heading="No items yet"
+        message="Items appear here when you add products with their sizes and colours."
+      >
+        <a routerLink="/masters/products/new" class="btn btn-primary btn-sm">
+          <app-icon name="plus-lg" /> Add Product
+        </a>
+      </app-empty-state>
+    }
+  } @else {
+    <div
+      class="table-wrap"
+      [class.is-refreshing]="list.loading()"
+      [attr.aria-busy]="list.loading()"
+    >
+      <table class="data-table items-table">
+        <thead>
+          <tr>
+            <th class="col-check">
+              <input
+                #pageCheck
+                type="checkbox"
+                aria-label="Select all items on this page"
+                [checked]="pageAllSelected()"
+                [indeterminate]="pageSomeSelected()"
+                (change)="togglePage(pageCheck.checked)"
+              />
+            </th>
+            @for (key of ['name', 'sku', 'barcode']; track key) {
+              <th [attr.aria-sort]="ariaSort(key)" [class.hide-below-lg]="key === 'sku'">
+                <button type="button" class="sort-btn" (click)="toggleSort(key)">
+                  {{ sortColumns[key].label }}
+                  <app-icon class="sort-icon" [name]="sortIcon(key)" />
+                </button>
+              </th>
+            }
+            <th class="hide-below-xl">Category</th>
+            @for (key of ['mrp', 'unitPrice', 'stock']; track key) {
+              <th class="text-end" [attr.aria-sort]="ariaSort(key)">
+                <button type="button" class="sort-btn" (click)="toggleSort(key)">
+                  {{ sortColumns[key].label }}
+                  <app-icon class="sort-icon" [name]="sortIcon(key)" />
+                </button>
+              </th>
+            }
+            <th class="text-end hide-below-lg">GST</th>
+            <th class="col-actions"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of list.items(); track itemKey(item)) {
+            <tr
+              [class.is-inactive]="item.status === 'inactive'"
+              [class.is-selected]="isSelected(item)"
+            >
+              <td class="col-check">
+                <input
+                  #rowCheck
+                  type="checkbox"
+                  [attr.aria-label]="'Select ' + item.productName + ' ' + itemDetails(item)"
+                  [checked]="isSelected(item)"
+                  (change)="toggle(item, rowCheck.checked)"
+                />
+              </td>
+              <td class="col-item">
+                <a
+                  class="cell-link"
+                  [routerLink]="['/masters/products', item.productId]"
+                  [title]="'Open ' + item.productName"
+                  >{{ item.productName }}</a
+                >
+                @if (item.status === 'inactive') {
+                  <span class="badge badge-muted">Inactive</span>
+                }
+                <div class="item-details">
+                  @if (item.colorHex) {
+                    <span class="swatch item-swatch" [style.background]="item.colorHex"></span>
+                  }
+                  {{ itemDetails(item) || 'No variants' }}
+                  @if (item.brandName) {
+                    <span class="text-muted">· {{ item.brandName }}</span>
+                  }
+                </div>
+              </td>
+              <td class="mono small hide-below-lg">{{ item.sku }}</td>
+              <td class="nowrap">
+                @if (item.barcode) {
+                  <span class="mono small">{{ item.barcode }}</span>
+                } @else {
+                  <span class="badge badge-warning">Not assigned</span>
+                }
+              </td>
+              <td class="hide-below-xl small">{{ item.categoryName }}</td>
+              <td class="text-end nowrap">{{ item.mrp | number: '1.2-2' }}</td>
+              <td class="text-end nowrap fw-600">{{ item.unitPrice | number: '1.2-2' }}</td>
+              <td class="text-end nowrap">
+                <button
+                  type="button"
+                  class="stock-btn"
+                  [class.is-out]="(item.stock ?? 0) === 0"
+                  [class.is-negative]="(item.stock ?? 0) < 0"
+                  title="Stock history"
+                  [attr.aria-label]="
+                    'Stock history of ' + item.productName + ' ' + itemDetails(item)
+                  "
+                  (click)="historyItem.set(item)"
+                >
+                  {{ item.stock ?? 0 | number: '1.0-3' }}
+                </button>
+              </td>
+              <td class="text-end hide-below-lg small">{{ item.gstRate }}%</td>
+              <td class="cell-actions nowrap">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-icon btn-sm"
+                  [title]="item.barcode ? 'Print labels' : 'Give a barcode'"
+                  [attr.aria-label]="
+                    (item.barcode ? 'Print labels for ' : 'Give a barcode to ') + item.productName
+                  "
+                  (click)="openBarcodes([item])"
+                >
+                  <app-icon [name]="item.barcode ? 'printer' : 'upc'" />
+                </button>
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Edit in the product"
+                  [attr.aria-label]="'Edit ' + item.productName"
+                  [routerLink]="['/masters/products', item.productId, 'edit']"
+                  [queryParams]="item.variantId ? { variant: item.variantId } : {}"
+                >
+                  <app-icon name="pencil-square" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  @if (historyItem(); as item) {
+    <app-stock-history-dialog [item]="item" (closed)="historyItem.set(null)" />
+  }
+  <div class="card-footer">
+    <app-pagination
+      [page]="list.query().page"
+      [pageSize]="list.query().pageSize"
+      [total]="list.total()"
+      (pageChange)="list.setPage($event)"
+      (pageSizeChange)="list.setPageSize($event)"
+    />
+  </div>
+</section>

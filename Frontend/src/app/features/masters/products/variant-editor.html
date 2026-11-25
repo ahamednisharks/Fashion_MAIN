@@ -1,0 +1,201 @@
+<div class="variant-toolbar">
+  <button type="button" class="btn btn-secondary btn-sm" (click)="addVariant()">
+    <app-icon name="plus-lg" /> Add variant
+  </button>
+  <button
+    type="button"
+    class="btn btn-secondary btn-sm"
+    [attr.aria-expanded]="showGenerator()"
+    (click)="showGenerator.set(!showGenerator())"
+  >
+    <app-icon name="magic" /> Bulk add
+  </button>
+  <p class="toolbar-hint">Leave variant prices blank to use the product prices.</p>
+</div>
+
+@if (showGenerator()) {
+  <app-variant-generator
+    [sizes]="activeSizes()"
+    [colors]="activeColors()"
+    (generate)="generate($event)"
+    (cancel)="showGenerator.set(false)"
+  />
+}
+
+@if (rows().length === 0) {
+  <div class="variants-empty">
+    <app-icon name="layers" />
+    <p class="fw-600">No variants yet</p>
+    <p class="small">
+      Add each design, size and colour combination you sell — or use <strong>Bulk add</strong>.
+      Products without variants are sold using the product barcode.
+    </p>
+  </div>
+} @else {
+  <div class="variant-head" aria-hidden="true">
+    <span>#</span>
+    <span>Design</span>
+    <span>Size</span>
+    <span>Colour</span>
+    <span>SKU</span>
+    <span>Barcode</span>
+    <span class="text-end">Purchase ₹</span>
+    <span class="text-end">Selling ₹</span>
+    <span class="text-end">MRP ₹</span>
+    <span></span>
+  </div>
+
+  @for (row of rows(); track row.group) {
+    <div
+      class="variant-row"
+      role="group"
+      [attr.aria-label]="'Variant ' + (row.index + 1)"
+      [formGroup]="row.group"
+      [class.has-issues]="row.messages.length > 0"
+      [attr.data-variant-id]="row.group.controls.id.value || null"
+      [class.is-highlighted]="!!highlightId() && row.group.controls.id.value === highlightId()"
+    >
+      <div class="variant-index">
+        <span class="idx">{{ row.index + 1 }}</span>
+        <span class="variant-title">{{ row.title }}</span>
+      </div>
+
+      <label class="vfield">
+        <span class="vlabel">Design / Model No.</span>
+        <input
+          class="form-control"
+          formControlName="designNo"
+          maxlength="30"
+          placeholder="e.g. 101"
+          (input)="refreshSku(row.group)"
+        />
+      </label>
+
+      <label class="vfield">
+        <span class="vlabel">Size <span class="req">*</span></span>
+        <select class="form-control" formControlName="sizeId" (change)="refreshSku(row.group)">
+          <option value="">Select</option>
+          @for (group of sizeGroups(); track group.type) {
+            <optgroup [label]="group.label">
+              @for (size of group.sizes; track size.id) {
+                <option [value]="size.id">{{ size.name }}{{ inactiveSuffix(size.status) }}</option>
+              }
+            </optgroup>
+          }
+        </select>
+      </label>
+
+      <label class="vfield v-color">
+        <span class="vlabel">Colour <span class="req">*</span></span>
+        <span class="color-select">
+          <span
+            class="swatch"
+            [class.is-empty]="!row.hex"
+            [style.background]="row.hex || null"
+          ></span>
+          <select class="form-control" formControlName="colorId" (change)="refreshSku(row.group)">
+            <option value="">Select</option>
+            @for (color of colors(); track color.id) {
+              <option [value]="color.id">{{ color.name }}{{ inactiveSuffix(color.status) }}</option>
+            }
+          </select>
+        </span>
+      </label>
+
+      <label class="vfield v-sku">
+        <span class="vlabel">SKU <span class="req">*</span></span>
+        <input
+          class="form-control mono"
+          formControlName="sku"
+          maxlength="60"
+          appUppercase
+          placeholder="Auto"
+        />
+      </label>
+
+      <label class="vfield v-barcode">
+        <span class="vlabel">Barcode</span>
+        <input
+          class="form-control mono"
+          formControlName="barcode"
+          maxlength="48"
+          placeholder="Optional"
+        />
+      </label>
+
+      <div class="v-prices">
+        <label class="vfield">
+          <span class="vlabel">Purchase ₹</span>
+          <input
+            type="number"
+            class="form-control text-end"
+            formControlName="purchasePrice"
+            inputmode="decimal"
+            min="0"
+            step="0.01"
+            [placeholder]="pricePlaceholder(basePurchase())"
+          />
+        </label>
+
+        <label class="vfield">
+          <span class="vlabel">Selling ₹</span>
+          <input
+            type="number"
+            class="form-control text-end"
+            formControlName="sellingPrice"
+            inputmode="decimal"
+            min="0"
+            step="0.01"
+            [placeholder]="pricePlaceholder(baseSelling())"
+          />
+        </label>
+
+        <label class="vfield">
+          <span class="vlabel">MRP ₹</span>
+          <input
+            type="number"
+            class="form-control text-end"
+            formControlName="mrp"
+            inputmode="decimal"
+            min="0"
+            step="0.01"
+            [placeholder]="pricePlaceholder(baseMrp())"
+          />
+        </label>
+      </div>
+
+      <div class="variant-actions">
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon btn-sm"
+          title="Duplicate variant"
+          [attr.aria-label]="'Duplicate variant ' + (row.index + 1)"
+          (click)="duplicateVariant(row.index)"
+        >
+          <app-icon name="copy" />
+        </button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-icon btn-sm is-danger"
+          title="Remove variant"
+          [attr.aria-label]="'Remove variant ' + (row.index + 1)"
+          (click)="removeVariant(row.index)"
+        >
+          <app-icon name="trash3" />
+        </button>
+      </div>
+
+      @if (row.messages.length) {
+        <ul class="variant-issues" role="alert">
+          @for (message of row.messages; track $index) {
+            <li>{{ message }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  <button type="button" class="btn btn-ghost btn-sm add-more" (click)="addVariant()">
+    <app-icon name="plus-circle" /> Add another variant
+  </button>
+}

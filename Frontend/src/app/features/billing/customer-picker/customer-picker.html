@@ -1,0 +1,93 @@
+@if (store.customer(); as customer) {
+  <div class="selected" aria-live="polite">
+    <span class="selected-icon"><app-icon name="person-check" /></span>
+    <div class="grow">
+      <p class="fw-600">{{ customer.name }}</p>
+      <p class="small text-muted">
+        <span class="mono">{{ customer.mobile }}</span>
+        @if (customer.gstNumber) {
+          · GSTIN <span class="mono">{{ customer.gstNumber }}</span>
+        }
+      </p>
+    </div>
+    <button
+      type="button"
+      class="btn btn-ghost btn-icon btn-sm"
+      aria-label="Remove customer (bill as walk-in)"
+      title="Remove customer"
+      (click)="clearCustomer()"
+    >
+      <app-icon name="x-lg" />
+    </button>
+  </div>
+} @else {
+  <label class="visually-hidden" for="bill-customer-mobile">Customer mobile number</label>
+  <div class="mobile-field">
+    <app-icon name="telephone" class="mobile-icon" />
+    <input
+      #mobile
+      id="bill-customer-mobile"
+      class="form-control mobile-input"
+      type="tel"
+      inputmode="numeric"
+      maxlength="16"
+      autocomplete="off"
+      placeholder="Mobile no. — empty for walk-in"
+      [value]="mobileText()"
+      (input)="onMobileInput(mobile.value)"
+      (keydown.enter)="$event.preventDefault(); onMobileEnter()"
+    />
+    @if (state().kind === 'checking') {
+      <span class="spinner mobile-spinner" aria-hidden="true"></span>
+    }
+  </div>
+
+  <div class="status" aria-live="polite">
+    @switch (state().kind) {
+      @case ('idle') {
+        <p class="small text-muted">Walk-in customer</p>
+      }
+      @case ('checking') {
+        <p class="small text-muted">Looking up…</p>
+      }
+      @case ('not-found') {
+        <p class="small">New customer — enter a name to save them:</p>
+        <div class="new-customer">
+          <input
+            #nameInput
+            class="form-control"
+            maxlength="100"
+            autocomplete="off"
+            placeholder="Customer name"
+            aria-label="New customer name"
+            [value]="newName()"
+            (input)="newName.set(nameInput.value)"
+            (keydown.enter)="$event.preventDefault(); addCustomer()"
+          />
+          <button
+            type="button"
+            class="btn btn-secondary"
+            [disabled]="adding()"
+            (click)="addCustomer()"
+          >
+            @if (adding()) {
+              <span class="spinner" aria-hidden="true"></span>
+            } @else {
+              <app-icon name="person-plus" />
+            }
+            Add
+          </button>
+        </div>
+      }
+      @case ('inactive') {
+        <p class="small text-danger">
+          {{ inactiveName() }} is an inactive customer. Bill as walk-in, or activate them in Masters
+          → Customers.
+        </p>
+      }
+      @case ('error') {
+        <p class="small text-danger">{{ errorMessage() }}</p>
+      }
+    }
+  </div>
+}

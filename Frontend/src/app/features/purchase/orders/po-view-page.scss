@@ -1,0 +1,219 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+.cancelled-note {
+  margin-bottom: 16px;
+}
+
+.po-doc {
+  max-width: 1100px;
+  padding: 20px 16px;
+  font-variant-numeric: tabular-nums;
+
+  @include up(md) {
+    padding: 28px 32px;
+  }
+
+  h3 {
+    margin: 0 0 6px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-3);
+  }
+
+  p {
+    margin: 0 0 2px;
+  }
+}
+
+// Purchase entries against the PO (screen only).
+.po-entries {
+  max-width: 1100px;
+  margin-top: 16px;
+
+  .is-cancelled td {
+    color: var(--c-text-3);
+  }
+}
+
+.doc-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--c-text);
+}
+
+.shop {
+  max-width: 460px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+.shop-logo {
+  display: block;
+  max-width: 180px;
+  max-height: 64px;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+
+.shop-name {
+  margin: 0 0 4px;
+  font-size: var(--fs-xl);
+  color: var(--c-text);
+}
+
+.doc-title {
+  h2 {
+    margin: 0 0 8px;
+    font-size: var(--fs-lg);
+    letter-spacing: 0.08em;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 4px 16px;
+    margin: 0;
+    font-size: var(--fs-sm);
+
+    > div {
+      display: contents;
+    }
+  }
+
+  dt {
+    color: var(--c-text-3);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.parties {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 0;
+  font-size: var(--fs-sm);
+
+  @include up(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.table-wrap {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.doc-table {
+  th,
+  td {
+    padding: 8px 10px;
+    vertical-align: top;
+  }
+}
+
+.doc-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding-top: 16px;
+
+  @include up(md) {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    align-items: start;
+  }
+}
+
+.notes {
+  font-size: var(--fs-sm);
+}
+
+.doc-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  dt {
+    color: var(--c-text-2);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .grand {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 2px solid var(--c-text);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+
+    dt {
+      color: var(--c-text);
+    }
+  }
+}
+
+.doc-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 48px;
+}
+
+.signature {
+  min-width: 200px;
+  padding-top: 6px;
+  border-top: 1px solid var(--c-text);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+@media print {
+  .po-doc {
+    max-width: none;
+    padding: 0;
+    border: 0;
+  }
+
+  // A4 is narrower than the screen breakpoint, so keep the two-column layouts on paper.
+  .parties {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .doc-bottom {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .doc-table {
+    th,
+    td {
+      padding: 4px 6px;
+    }
+  }
+
+  .badge {
+    border: 1px solid currentColor;
+  }
+}

@@ -1,0 +1,93 @@
+<form class="modal-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <div class="modal-body">
+    @if (controller.error(); as message) {
+      <div class="alert alert-danger form-alert" role="alert">
+        <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+      </div>
+    }
+
+    <section class="form-section">
+      <h3 class="form-section-title">Customer details</h3>
+      <div class="form-grid cols-3">
+        <app-form-field label="Customer Name">
+          <input
+            class="form-control"
+            formControlName="name"
+            maxlength="100"
+            autocomplete="name"
+            placeholder="Full name or business name"
+            autofocus
+          />
+        </app-form-field>
+        <app-form-field label="Mobile Number" hint="Used to find the customer while billing.">
+          <input
+            class="form-control"
+            formControlName="mobile"
+            appMobileInput
+            placeholder="98765 43210"
+          />
+        </app-form-field>
+        <app-form-field label="Email">
+          <input
+            type="email"
+            class="form-control"
+            formControlName="email"
+            maxlength="100"
+            autocomplete="email"
+            inputmode="email"
+            placeholder="Optional"
+          />
+        </app-form-field>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h3 class="form-section-title">Address</h3>
+      <div class="form-grid cols-3">
+        <app-address-fields />
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h3 class="form-section-title">Tax &amp; accounts</h3>
+      <div class="form-grid cols-3">
+        <app-form-field label="GST Number" hint="Optional — only for business (B2B) customers.">
+          <input
+            class="form-control mono"
+            formControlName="gstNumber"
+            maxlength="15"
+            autocomplete="off"
+            placeholder="Optional"
+            appUppercase
+          />
+        </app-form-field>
+        <app-form-field label="Opening Balance" hint="Amount this customer owes you today.">
+          <div class="input-group">
+            <span class="input-addon">₹</span>
+            <input
+              type="number"
+              class="form-control"
+              formControlName="openingBalance"
+              inputmode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+            />
+          </div>
+        </app-form-field>
+        <app-form-field label="Status">
+          <app-segmented-control
+            formControlName="status"
+            [options]="statusOptions"
+            ariaLabel="Status"
+          />
+        </app-form-field>
+      </div>
+    </section>
+  </div>
+  <app-form-footer
+    [saving]="controller.saving()"
+    [submitLabel]="customer() ? 'Save changes' : 'Add customer'"
+    (cancel)="controller.cancel()"
+  />
+</form>

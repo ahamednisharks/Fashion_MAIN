@@ -1,0 +1,339 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+:host > .card + .card,
+:host > .form-actions-bar + .card,
+:host > .alert {
+  margin-top: 16px;
+}
+
+.form-control.form-control-sm {
+  height: var(--control-h-sm);
+  padding: 0 8px;
+  font-size: var(--fs-sm);
+}
+
+// ---- Items list ---------------------------------------------------------------------------------
+
+.items-card {
+  // Lets the scan bar stick below the app header while the list scrolls.
+  overflow: visible;
+}
+
+.scan-bar {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 6;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--c-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--c-surface);
+}
+
+.bulk-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+}
+
+.form-control.bulk-select {
+  width: auto;
+  min-width: 150px;
+  max-width: 220px;
+}
+
+.table-wrap {
+  position: relative;
+}
+
+.barcode-table {
+  th,
+  td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  td {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    vertical-align: top;
+  }
+
+  .col-no {
+    width: 36px;
+  }
+
+  .col-barcode {
+    width: 42%;
+    min-width: 220px;
+  }
+
+  .col-copies {
+    width: 90px;
+  }
+
+  .col-remove {
+    width: 44px;
+    padding-left: 0;
+  }
+}
+
+.col-item {
+  min-width: 180px;
+}
+
+.item-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.item-details {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+.swatch.swatch-sm {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.item-codes {
+  font-size: var(--fs-xs);
+  color: var(--c-text-3);
+  overflow-wrap: anywhere;
+}
+
+.barcode-set {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--control-h-sm);
+}
+
+.form-control.barcode-input {
+  width: 100%;
+  max-width: 260px;
+
+  &::placeholder {
+    font-family: var(--font-sans);
+  }
+}
+
+.form-control.copies-input {
+  width: 64px;
+  text-align: center;
+}
+
+.cell-note,
+.cell-error,
+.cell-warning {
+  margin-top: 3px;
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+}
+
+.cell-note {
+  color: var(--c-text-3);
+}
+
+.cell-error {
+  color: var(--c-danger);
+}
+
+.cell-warning {
+  color: var(--c-warning);
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--c-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+tr.has-error td {
+  background: var(--c-danger-soft);
+}
+
+// Highlight a row when the same item is added again (two identical animations, so toggling
+// between them restarts the effect on every re-add).
+@keyframes row-flash-a {
+  from {
+    background: var(--c-primary-flash);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes row-flash-b {
+  from {
+    background: var(--c-primary-flash);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.barcode-table tbody tr.flash-even td {
+  animation: row-flash-a 1.2s ease-out;
+}
+
+.barcode-table tbody tr.flash-odd td {
+  animation: row-flash-b 1.2s ease-out;
+}
+
+.empty-row td {
+  padding: 0 !important;
+}
+
+.empty-row:hover td {
+  background: transparent !important;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.empty p,
+.label-preview p {
+  margin: 0;
+}
+
+.empty-icon {
+  margin-bottom: 6px;
+  font-size: 32px;
+  color: var(--c-text-3);
+}
+
+.list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--c-border);
+}
+
+.all-copies {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+// ---- Labels -------------------------------------------------------------------------------------
+
+.label-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+.label-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 6px;
+    padding: 0;
+  }
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  input {
+    margin-top: 3px;
+    accent-color: var(--c-primary);
+  }
+
+  &.is-selected {
+    border-color: var(--c-primary);
+    background: var(--c-primary-soft);
+  }
+}
+
+.option-hint {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+}
+
+.start-at .form-control,
+.prefix-field .form-control {
+  width: 90px;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.label-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.preview-frame {
+  max-width: 100%;
+  padding: 16px;
+  overflow: auto;
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--c-surface-2);
+}
+
+.preview-label {
+  zoom: 2;
+  width: max-content;
+  box-shadow: 0 0 0 0.5px var(--c-border-strong);
+}

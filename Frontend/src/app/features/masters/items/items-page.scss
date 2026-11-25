@@ -1,0 +1,201 @@
+@use 'mixins' as *;
+
+:host {
+  display: block;
+}
+
+// From tablets up the page fits the window: header, counts, filters and pagination stay in
+// place and only the table rows scroll (column headings stick to the top of the table).
+// Phones keep normal page scrolling.
+@include up(md) {
+  :host {
+    display: flex;
+    flex-direction: column;
+    // Window minus the app header and the content area's top (20px) and bottom (24px) padding.
+    height: calc(100dvh - var(--header-h) - 44px);
+    min-height: 420px;
+  }
+
+  :host > * {
+    flex-shrink: 0;
+  }
+
+  .items-card {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+
+    > * {
+      flex-shrink: 0;
+    }
+
+    > .table-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+  }
+
+  .items-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+.item-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 12px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+.stat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--c-warning-border);
+  border-radius: 999px;
+  background: var(--c-warning-soft);
+  color: var(--c-warning);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.filter-narrow {
+  max-width: 140px;
+}
+
+.selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-primary-soft);
+}
+
+.items-table {
+  td {
+    vertical-align: top;
+  }
+
+  .col-check {
+    width: 36px;
+    padding-right: 0;
+
+    input {
+      width: 16px;
+      height: 16px;
+      margin: 2px 0 0;
+      accent-color: var(--c-primary);
+      cursor: pointer;
+    }
+  }
+
+  .col-item {
+    min-width: 200px;
+
+    .badge {
+      margin-left: 6px;
+    }
+  }
+
+  .col-actions {
+    width: 1%;
+  }
+
+  tr.is-selected td {
+    background: var(--c-primary-soft);
+  }
+}
+
+.item-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+
+.swatch.item-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--c-text);
+  }
+
+  .sort-icon {
+    font-size: 10px;
+  }
+}
+
+.text-end .sort-btn {
+  flex-direction: row-reverse;
+}
+
+.stat-link.is-danger {
+  color: var(--c-danger);
+}
+
+.stat-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+// Quantity in hand: a button opening the item's stock history.
+.stock-btn {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--c-primary-soft);
+  }
+
+  &.is-out {
+    color: var(--c-text-3);
+  }
+
+  &.is-negative {
+    color: var(--c-danger);
+  }
+}

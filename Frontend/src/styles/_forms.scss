@@ -1,0 +1,332 @@
+@use 'mixins' as *;
+
+// ---- Layout -------------------------------------------------------------------------------------
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px 16px;
+
+  &.cols-2,
+  &.cols-3,
+  &.cols-4 {
+    @include up(sm) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &.cols-3 {
+    @include up(lg) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &.cols-4 {
+    @include up(lg) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .span-2 {
+    @include up(sm) {
+      grid-column: span 2;
+    }
+  }
+
+  .span-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.form-section + .form-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--c-border);
+}
+
+.form-section-title {
+  margin-bottom: 12px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-text-3);
+}
+
+// ---- Field --------------------------------------------------------------------------------------
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--c-text-2);
+
+  .req {
+    margin-left: 2px;
+    color: var(--c-danger);
+  }
+}
+
+.field-hint,
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+.field-hint {
+  color: var(--c-text-3);
+}
+
+.field-error {
+  color: var(--c-danger);
+
+  .app-icon {
+    margin-top: 2px;
+  }
+}
+
+// ---- Controls -----------------------------------------------------------------------------------
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 0 11px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background-color: var(--c-surface);
+  color: var(--c-text);
+  // 16px on phones prevents iOS from zooming into focused inputs.
+  font-size: 1rem;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+
+  @include up(md) {
+    font-size: var(--fs-base);
+  }
+
+  &::placeholder {
+    color: var(--c-placeholder);
+  }
+
+  &:hover:not(:disabled):not([readonly]) {
+    border-color: #94a3b8;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px var(--c-focus);
+  }
+
+  &[aria-invalid='true'],
+  &.ng-invalid.ng-touched {
+    border-color: var(--c-danger);
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+    }
+  }
+
+  &:disabled,
+  &[readonly] {
+    background-color: var(--c-surface-2);
+    color: var(--c-text-3);
+  }
+
+  &.mono {
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 76px;
+  padding: 8px 11px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+select.form-control {
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px 12px;
+  cursor: pointer;
+}
+
+input[type='number'].form-control {
+  appearance: textfield;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+input[type='search'].form-control::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+// ---- Input group (prefix / suffix) --------------------------------------------------------------
+
+.input-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+
+  > .form-control {
+    flex: 1 1 auto;
+    width: 1%;
+  }
+
+  > * + * {
+    margin-left: -1px;
+  }
+
+  > :not(:first-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  > :not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  > .form-control:focus {
+    position: relative;
+    z-index: 1;
+  }
+
+  > .btn {
+    height: var(--control-h);
+  }
+}
+
+.input-addon {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius);
+  background: var(--c-surface-2);
+  color: var(--c-text-3);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+// ---- Checkbox / switch ----------------------------------------------------------------------------
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--c-primary);
+    cursor: pointer;
+  }
+}
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    appearance: none;
+    position: relative;
+    width: 36px;
+    height: 20px;
+    margin: 0;
+    border-radius: 999px;
+    background: var(--c-border-strong);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+      transition: transform 0.15s ease;
+    }
+
+    &:checked {
+      background: var(--c-primary);
+
+      &::after {
+        transform: translateX(16px);
+      }
+    }
+  }
+}
+
+// ---- Sticky form action bar -------------------------------------------------------------------------
+
+.form-actions-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 16px calc(var(--page-gutter) * -1) 0;
+  padding: 10px var(--page-gutter);
+  border-top: 1px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(4px);
+
+  .form-actions-note {
+    margin-right: auto;
+    font-size: var(--fs-sm);
+    color: var(--c-text-3);
+  }
+
+  @include down(sm) {
+    .btn {
+      flex: 1 1 0;
+    }
+
+    .form-actions-note {
+      flex-basis: 100%;
+    }
+  }
+}
+
+// Form-level error banner (errors not tied to a single field).
+.form-alert {
+  margin-bottom: 14px;
+}

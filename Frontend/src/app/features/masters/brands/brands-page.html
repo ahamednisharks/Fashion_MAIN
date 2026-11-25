@@ -1,0 +1,76 @@
+<app-page-header
+  description="Labels and manufacturers you stock, including your own in-house label."
+>
+  <button type="button" class="btn btn-primary" (click)="page.openCreate()">
+    <app-icon name="plus-lg" /> Add Brand
+  </button>
+</app-page-header>
+
+<section class="card list-card" aria-label="Brands">
+  <app-list-toolbar
+    placeholder="Search brands"
+    [search]="list.query().search"
+    [status]="list.query().status"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (statusChange)="list.setStatus($event)"
+    (clear)="list.clearFilters()"
+  />
+  <app-data-table
+    entityName="brands"
+    emptyMessage="Add the brands you sell so products can be tagged with them."
+    createLabel="Add Brand"
+    [rows]="list.items()"
+    [columns]="columns"
+    [actions]="actions"
+    [loading]="list.loading()"
+    [error]="list.error()"
+    [sort]="list.query().sort"
+    [filtered]="list.hasFilters()"
+    (action)="page.onAction($event)"
+    (sortChange)="list.setSort($event)"
+    (retry)="list.reload()"
+    (clearFilters)="list.clearFilters()"
+    (create)="page.openCreate()"
+  />
+  <app-pagination
+    [page]="list.query().page"
+    [pageSize]="list.query().pageSize"
+    [total]="list.total()"
+    (pageChange)="list.setPage($event)"
+    (pageSizeChange)="list.setPageSize($event)"
+  />
+</section>
+
+@if (page.dialog(); as dialog) {
+  @if (dialog.mode === 'view') {
+    <app-modal title="Brand details" [dismissible]="true" (closed)="page.close()">
+      <div class="modal-body">
+        <app-detail-list [items]="details(dialog.item)" />
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-danger footer-start"
+          (click)="page.delete(dialog.item)"
+        >
+          <app-icon name="trash3" /> Delete
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="page.close()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="page.openEdit(dialog.item)">
+          <app-icon name="pencil-square" /> Edit
+        </button>
+      </div>
+    </app-modal>
+  } @else {
+    <app-modal
+      [title]="dialog.mode === 'edit' ? 'Edit brand' : 'Add brand'"
+      (closed)="page.close()"
+    >
+      <app-brand-form
+        [brand]="dialog.mode === 'edit' ? dialog.item : null"
+        (saved)="page.onSaved($event)"
+      />
+    </app-modal>
+  }
+}

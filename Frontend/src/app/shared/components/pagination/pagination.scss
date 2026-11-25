@@ -1,0 +1,77 @@
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--c-border);
+
+  &.is-empty {
+    display: none;
+  }
+}
+
+.pagination-info {
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+
+  strong {
+    font-weight: 600;
+    color: var(--c-text-2);
+  }
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+  font-size: var(--fs-sm);
+  color: var(--c-text-3);
+
+  .form-control {
+    width: 72px;
+    height: var(--control-h-sm);
+  }
+}
+
+.page-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.page-btn {
+  min-width: var(--control-h-sm);
+  padding: 0 6px;
+  color: var(--c-text-2);
+
+  &:hover {
+    background: var(--c-surface-hover);
+  }
+
+  &.is-current {
+    background: var(--c-primary-soft);
+    color: var(--c-primary-text);
+    font-weight: 600;
+  }
+}
+
+.page-gap {
+  padding: 0 4px;
+  color: var(--c-text-3);
+}
+
+.page-status {
+  min-width: 56px;
+  font-size: var(--fs-sm);
+  text-align: center;
+  color: var(--c-text-2);
+}

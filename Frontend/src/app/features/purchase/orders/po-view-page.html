@@ -1,0 +1,325 @@
+@if (error(); as message) {
+  <section class="card">
+    <app-error-state
+      heading="Couldn't load the purchase order"
+      [message]="message"
+      (retry)="load(id())"
+    >
+      <a routerLink="/purchase/orders" class="btn btn-secondary btn-sm">All purchase orders</a>
+    </app-error-state>
+  </section>
+} @else if (loading() && !po()) {
+  <section class="card card-body">
+    <p class="text-muted flex-row"><span class="spinner" aria-hidden="true"></span> Loading…</p>
+  </section>
+} @else if (po(); as po) {
+  <app-page-header class="no-print">
+    <a routerLink="/purchase/orders" class="btn btn-secondary">
+      <app-icon name="arrow-left" /> All purchase orders
+    </a>
+    @if (editable()) {
+      <button
+        type="button"
+        class="btn btn-outline-danger"
+        [disabled]="cancelling()"
+        (click)="cancelPo(po)"
+      >
+        <app-icon name="x-circle" /> Cancel PO
+      </button>
+      <a class="btn btn-secondary" [routerLink]="['/purchase/orders', po.id, 'edit']">
+        <app-icon name="pencil-square" /> Edit
+      </a>
+    }
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="downloading()"
+      (click)="downloadPdf(po)"
+    >
+      @if (downloading()) {
+        <span class="spinner" aria-hidden="true"></span> Creating PDF…
+      } @else {
+        <app-icon name="download" /> Download PDF
+      }
+    </button>
+    <button
+      type="button"
+      [class]="receivable() ? 'btn btn-secondary' : 'btn btn-primary'"
+      (click)="printPo()"
+    >
+      <app-icon name="printer" /> Print
+    </button>
+    @if (receivable()) {
+      <a class="btn btn-primary" routerLink="/purchase/entries/new" [queryParams]="{ po: po.id }">
+        <app-icon name="box-arrow-in-right" /> Receive goods
+      </a>
+    }
+  </app-page-header>
+
+  @if (po.status === 'cancelled') {
+    <div class="alert alert-danger cancelled-note no-print" role="status">
+      <app-icon name="slash-circle" />
+      <span>
+        This purchase order was cancelled
+        @if (po.cancelledAt) {
+          on {{ po.cancelledAt | date: 'dd MMM y, hh:mm a' }}
+        }
+        by {{ po.updatedByName }}.
+      </span>
+    </div>
+  }
+
+  <article class="card po-doc">
+    <!-- Buyer (shop) + document title -->
+    <header class="doc-head">
+      <div class="shop">
+        @if (logo()) {
+          <img class="shop-logo" [src]="logo()" alt="" />
+        }
+        <h1 class="shop-name">{{ shop()?.shopName || 'Your shop' }}</h1>
+        @if (shopAddress()) {
+          <p>{{ shopAddress() }}</p>
+        }
+        <p>
+          @if (shop()?.phone) {
+            Phone <span class="mono">{{ shop()?.phone }}</span>
+          }
+          @if (shop()?.gstNumber) {
+            · GSTIN <span class="mono">{{ shop()?.gstNumber }}</span>
+          }
+        </p>
+      </div>
+      <div class="doc-title">
+        <h2>PURCHASE ORDER</h2>
+        <dl>
+          <div>
+            <dt>PO No</dt>
+            <dd class="mono fw-600">{{ po.poNo }}</dd>
+          </div>
+          <div>
+            <dt>PO date</dt>
+            <dd>{{ po.poDate | date: 'dd MMM y' }}</dd>
+          </div>
+          @if (po.expectedDate) {
+            <div>
+              <dt>Expected by</dt>
+              <dd>{{ po.expectedDate | date: 'dd MMM y' }}</dd>
+            </div>
+          }
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span class="badge" [class]="'badge ' + statusBadge(po.status)">
+                {{ statusLabels[po.status] }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <!-- Parties -->
+    <section class="parties">
+      <div>
+        <h3>Supplier</h3>
+        <p class="fw-600">{{ po.supplierName }}</p>
+        @if (po.supplierAddress) {
+          <p>{{ po.supplierAddress }}</p>
+        }
+        @if (po.supplierState) {
+          <p>{{ po.supplierState }}</p>
+        }
+        <p>
+          Mobile <span class="mono">{{ po.supplierMobile }}</span>
+          @if (po.supplierGstNumber) {
+            · GSTIN <span class="mono">{{ po.supplierGstNumber }}</span>
+          }
+        </p>
+      </div>
+      <div>
+        <h3>Deliver to</h3>
+        <p class="fw-600">{{ shop()?.shopName || 'Your shop' }}</p>
+        @if (shopAddress()) {
+          <p>{{ shopAddress() }}</p>
+        }
+        <p class="text-muted small">
+          {{
+            po.supplyType === 'inter'
+              ? 'Inter-state supply — IGST'
+              : 'Intra-state supply — CGST + SGST'
+          }}
+        </p>
+      </div>
+    </section>
+
+    <!-- Lines -->
+    <div class="table-wrap">
+      <table class="data-table doc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th>HSN</th>
+            <th class="text-end">Qty</th>
+            <th class="text-end">Rate</th>
+            <th class="text-end">Disc %</th>
+            <th class="text-end">Taxable</th>
+            <th class="text-end">GST</th>
+            <th class="text-end">Amount</th>
+            @if (showReceived()) {
+              <th class="text-end">Received</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of po.items; track item.lineNo) {
+            <tr>
+              <td class="text-muted">{{ item.lineNo }}</td>
+              <td>
+                <div class="fw-600">{{ item.productName }}</div>
+                @if (itemDetails(item); as details) {
+                  <div class="small">{{ details }}</div>
+                }
+                <div class="xsmall text-muted mono">{{ item.sku }}</div>
+              </td>
+              <td class="mono small">{{ item.hsnCode || '—' }}</td>
+              <td class="text-end">{{ item.quantity | number: '1.0-3' }}</td>
+              <td class="text-end">{{ item.rate | number: '1.2-2' }}</td>
+              <td class="text-end">{{ item.discountPercent ? item.discountPercent : '—' }}</td>
+              <td class="text-end">{{ item.taxableValue | number: '1.2-2' }}</td>
+              <td class="text-end nowrap">
+                {{ taxOf(item) | number: '1.2-2' }}
+                <div class="xsmall text-muted">{{ gstPercent(item) }}</div>
+              </td>
+              <td class="text-end fw-600">{{ item.lineTotal | number: '1.2-2' }}</td>
+              @if (showReceived()) {
+                <td class="text-end nowrap">
+                  {{ item.receivedQuantity | number: '1.0-3' }}
+                  @if (pendingOf(item); as pending) {
+                    <div class="xsmall text-muted">{{ pending | number: '1.0-3' }} to come</div>
+                  } @else if (item.receivedQuantity > item.quantity) {
+                    <div class="xsmall text-muted">
+                      +{{ item.receivedQuantity - item.quantity | number: '1.0-3' }} extra
+                    </div>
+                  } @else {
+                    <div class="xsmall text-success">Complete</div>
+                  }
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Notes + totals -->
+    <section class="doc-bottom">
+      <div class="notes">
+        @if (po.notes) {
+          <h3>Notes / terms</h3>
+          <p class="pre-line">{{ po.notes }}</p>
+        }
+        <p class="small text-muted">
+          {{ po.itemCount }} {{ po.itemCount === 1 ? 'item' : 'items' }} ·
+          {{ po.totalQuantity | number: '1.0-3' }} total quantity · Rates exclude GST
+        </p>
+      </div>
+      <dl class="doc-totals">
+        <div>
+          <dt>Gross</dt>
+          <dd>{{ po.grossAmount | number: '1.2-2' }}</dd>
+        </div>
+        @if (po.discountTotal) {
+          <div>
+            <dt>Discount</dt>
+            <dd>−{{ po.discountTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Taxable value</dt>
+          <dd>{{ po.taxableTotal | number: '1.2-2' }}</dd>
+        </div>
+        @if (po.supplyType === 'inter') {
+          <div>
+            <dt>IGST</dt>
+            <dd>{{ po.igstTotal | number: '1.2-2' }}</dd>
+          </div>
+        } @else {
+          <div>
+            <dt>CGST</dt>
+            <dd>{{ po.cgstTotal | number: '1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>SGST</dt>
+            <dd>{{ po.sgstTotal | number: '1.2-2' }}</dd>
+          </div>
+        }
+        @if (po.roundOff) {
+          <div>
+            <dt>Round-off</dt>
+            <dd>{{ po.roundOff | number: '1.2-2' }}</dd>
+          </div>
+        }
+        <div class="grand">
+          <dt>Total</dt>
+          <dd>₹{{ po.grandTotal | number: '1.2-2' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <footer class="doc-foot">
+      <span class="small text-muted">
+        Prepared by {{ po.createdByName }} on {{ po.createdAt | date: 'dd MMM y' }}
+      </span>
+      <span class="signature">Authorised signatory</span>
+    </footer>
+  </article>
+
+  @if (entries().length || entriesError()) {
+    <section class="card po-entries no-print" aria-label="Purchase entries against this PO">
+      <div class="card-header">
+        <h2 class="card-title">Goods received</h2>
+      </div>
+      @if (entriesError(); as message) {
+        <p class="card-body text-danger small">{{ message }}</p>
+      } @else {
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>PE No</th>
+                <th>Received</th>
+                <th>Supplier invoice</th>
+                <th class="text-end">Items · Qty</th>
+                <th class="text-end">Amount (₹)</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of entries(); track entry.id) {
+                <tr [class.is-cancelled]="entry.status === 'cancelled'">
+                  <td class="nowrap">
+                    <a class="cell-link mono" [routerLink]="['/purchase/entries', entry.id]">{{
+                      entry.peNo
+                    }}</a>
+                  </td>
+                  <td class="nowrap">{{ entry.entryDate | date: 'dd MMM y' }}</td>
+                  <td class="mono nowrap">{{ entry.supplierInvoiceNo }}</td>
+                  <td class="text-end nowrap">
+                    {{ entry.itemCount }} · {{ entry.totalQuantity | number: '1.0-3' }}
+                  </td>
+                  <td class="text-end nowrap">{{ entry.grandTotal | number: '1.2-2' }}</td>
+                  <td>
+                    <span [class]="'badge ' + entryStatusBadge(entry.status)">{{
+                      entryStatusLabels[entry.status]
+                    }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+}

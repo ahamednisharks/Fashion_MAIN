@@ -1,0 +1,201 @@
+<app-page-header
+  description="Opening stock, stock counts and damaged, lost or found goods — every change to stock that no purchase entry or bill explains."
+>
+  <a routerLink="/masters/stock-adjustment/new" class="btn btn-primary">
+    <app-icon name="plus-lg" /> New Adjustment
+  </a>
+</app-page-header>
+
+<section class="card adjustments-card" aria-label="Stock adjustments">
+  <app-list-toolbar
+    placeholder="Search ADJ no, notes or entered by"
+    [search]="list.query().search"
+    [showStatus]="false"
+    [hasFilters]="list.hasFilters()"
+    (searchChange)="list.setSearch($event)"
+    (clear)="list.clearFilters()"
+  >
+    <select
+      #reasonSelect
+      class="form-control filter-select"
+      aria-label="Filter by reason"
+      (change)="list.setFilter('reason', reasonSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('reason')">All reasons</option>
+      @for (reason of reasons; track reason) {
+        <option [value]="reason" [selected]="list.filterValue('reason') === reason">
+          {{ reasonLabels[reason] }}
+        </option>
+      }
+    </select>
+    <select
+      #stateSelect
+      class="form-control filter-select filter-narrow"
+      aria-label="Filter by status"
+      (change)="list.setFilter('state', stateSelect.value)"
+    >
+      <option value="" [selected]="!list.filterValue('state')">All statuses</option>
+      @for (status of statuses; track status) {
+        <option [value]="status" [selected]="list.filterValue('state') === status">
+          {{ statusLabels[status] }}
+        </option>
+      }
+    </select>
+    <input
+      #fromDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="Dated from"
+      title="Dated from"
+      [value]="list.filterValue('from')"
+      [max]="list.filterValue('to') || null"
+      (change)="list.setFilter('from', fromDate.value)"
+    />
+    <input
+      #toDate
+      type="date"
+      class="form-control date-filter"
+      aria-label="Dated to"
+      title="Dated to"
+      [value]="list.filterValue('to')"
+      [min]="list.filterValue('from') || null"
+      (change)="list.setFilter('to', toDate.value)"
+    />
+  </app-list-toolbar>
+
+  @if (list.error(); as message) {
+    <app-error-state
+      heading="Couldn't load stock adjustments"
+      [message]="message"
+      (retry)="list.reload()"
+    />
+  } @else if (!list.loading() && !list.items().length) {
+    @if (list.hasFilters()) {
+      <app-empty-state icon="search" heading="No stock adjustments match these filters">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="list.clearFilters()">
+          Clear filters
+        </button>
+      </app-empty-state>
+    } @else {
+      <app-empty-state
+        icon="layers"
+        heading="No stock adjustments yet"
+        message="Start with the opening stock: count what is in the shop and enter it — items sold before they were entered are set right too."
+      >
+        <a
+          routerLink="/masters/stock-adjustment/new"
+          [queryParams]="{ reason: 'opening_stock' }"
+          class="btn btn-primary btn-sm"
+        >
+          <app-icon name="plus-lg" /> Enter opening stock
+        </a>
+      </app-empty-state>
+    }
+  } @else {
+    <div class="table-wrap" [attr.aria-busy]="list.loading()">
+      <table class="data-table adjustments-table">
+        <thead>
+          <tr>
+            <th>ADJ No</th>
+            <th>Date</th>
+            <th>Reason</th>
+            <th class="text-end">Items</th>
+            <th class="text-end">In</th>
+            <th class="text-end">Out</th>
+            <th class="text-end">Value (₹)</th>
+            <th>Status</th>
+            <th class="hide-below-lg">Entered by</th>
+            <th><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (adjustment of list.items(); track adjustment.id) {
+            <tr [class.is-cancelled]="adjustment.status === 'cancelled'">
+              <td class="nowrap">
+                <a
+                  class="cell-link mono"
+                  [routerLink]="['/masters/stock-adjustment', adjustment.id]"
+                  >{{ adjustment.adjNo }}</a
+                >
+              </td>
+              <td class="nowrap">{{ adjustment.adjustmentDate | date: 'dd MMM y' }}</td>
+              <td>
+                {{ reasonLabels[adjustment.reason] }}
+                <div class="xsmall text-muted">
+                  {{ modeLabels[adjustment.mode] }}
+                  @if (adjustment.notes) {
+                    ·
+                    <span class="notes-snippet" [title]="adjustment.notes">{{
+                      adjustment.notes
+                    }}</span>
+                  }
+                </div>
+              </td>
+              <td class="text-end">{{ adjustment.itemCount }}</td>
+              <td class="text-end nowrap" [class.text-success]="adjustment.quantityIn">
+                {{ adjustment.quantityIn ? '+' + (adjustment.quantityIn | number: '1.0-3') : '—' }}
+              </td>
+              <td class="text-end nowrap" [class.text-danger]="adjustment.quantityOut">
+                {{
+                  adjustment.quantityOut ? '−' + (adjustment.quantityOut | number: '1.0-3') : '—'
+                }}
+              </td>
+              <td class="text-end fw-600 nowrap">
+                @let value = net(adjustment);
+                {{ value < 0 ? '−' : '' }}{{ (value < 0 ? -value : value) | number: '1.2-2' }}
+              </td>
+              <td>
+                <span [class]="'badge ' + statusBadge(adjustment.status)">{{
+                  statusLabels[adjustment.status]
+                }}</span>
+              </td>
+              <td class="hide-below-lg">
+                {{ adjustment.createdByName }}
+                <div class="xsmall text-muted">
+                  {{ adjustment.createdAt | date: 'dd MMM, hh:mm a' }}
+                </div>
+              </td>
+              <td class="text-end nowrap">
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="View"
+                  [attr.aria-label]="'View ' + adjustment.adjNo"
+                  [routerLink]="['/masters/stock-adjustment', adjustment.id]"
+                >
+                  <app-icon name="eye" />
+                </a>
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Download PDF"
+                  [attr.aria-label]="'Download PDF of ' + adjustment.adjNo"
+                  [routerLink]="['/masters/stock-adjustment', adjustment.id]"
+                  [queryParams]="{ pdf: 1 }"
+                >
+                  <app-icon name="download" />
+                </a>
+                <a
+                  class="btn btn-ghost btn-icon btn-sm"
+                  title="Print"
+                  [attr.aria-label]="'Print ' + adjustment.adjNo"
+                  [routerLink]="['/masters/stock-adjustment', adjustment.id]"
+                  [queryParams]="{ print: 1 }"
+                >
+                  <app-icon name="printer" />
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  <div class="card-footer">
+    <app-pagination
+      [page]="list.query().page"
+      [pageSize]="list.query().pageSize"
+      [total]="list.total()"
+      (pageChange)="list.setPage($event)"
+      (pageSizeChange)="list.setPageSize($event)"
+    />
+  </div>
+</section>

@@ -1,0 +1,379 @@
+<app-page-header description="Shop details and application preferences." />
+
+<div class="page-stack settings-layout">
+  <section class="card">
+    <header class="card-header">
+      <div>
+        <h2 class="card-title"><app-icon name="shop" /> Shop profile</h2>
+        <p class="card-subtitle">
+          Printed on every bill. The state decides CGST + SGST or IGST for registered customers.
+        </p>
+      </div>
+    </header>
+    <form [formGroup]="form" (ngSubmit)="saveProfile()" novalidate>
+      <div class="card-body">
+        @if (profileLoadError(); as message) {
+          <div class="alert alert-danger form-alert" role="alert">
+            <app-icon name="exclamation-triangle-fill" />
+            <span class="grow">{{ message }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="loadProfile()">
+              <app-icon name="arrow-clockwise" /> Try again
+            </button>
+          </div>
+        }
+        @if (!canEditProfile) {
+          <div class="alert alert-info form-alert" role="note">
+            <app-icon name="info-circle-fill" />
+            <span>Only administrators can change the shop profile.</span>
+          </div>
+        }
+        @if (importedFromBrowser()) {
+          <div class="alert alert-warning form-alert" role="note">
+            <app-icon name="exclamation-triangle-fill" />
+            <span
+              >These details were saved only in this browser earlier. Save the profile to store it
+              on the server so every billing counter prints it.</span
+            >
+          </div>
+        }
+        @if (submitter.error(); as message) {
+          <div class="alert alert-danger form-alert" role="alert">
+            <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+          </div>
+        }
+        <div class="logo-row">
+          <div
+            class="logo-preview"
+            [class.empty]="!logo()"
+            [class.drop-target]="logoDragOver()"
+            (dragover)="onLogoDragOver($event)"
+            (dragleave)="logoDragOver.set(false)"
+            (drop)="onLogoDrop($event)"
+          >
+            @if (logo()) {
+              <img [src]="logo()" alt="Shop logo" />
+            } @else {
+              <app-icon name="image" />
+              <span>No logo</span>
+            }
+            @if (logoBusy()) {
+              <span class="logo-busy"><span class="spinner" aria-hidden="true"></span></span>
+            }
+          </div>
+          <div class="logo-info">
+            <p class="fw-600">Shop logo</p>
+            <p class="small text-muted">
+              Printed at the top of bills and purchase orders.
+              @if (canEditProfile) {
+                PNG, JPG, WebP or SVG (up to 10 MB) — it is cropped, resized and saved straight
+                away. A plain logo on a white or transparent background prints best.
+              }
+            </p>
+            @if (canEditProfile) {
+              <div class="logo-actions">
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  [disabled]="logoBusy()"
+                  (click)="logoInput.click()"
+                >
+                  <app-icon name="upload" /> {{ logo() ? 'Change logo' : 'Upload logo' }}
+                </button>
+                @if (logo()) {
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    [disabled]="logoBusy()"
+                    (click)="removeLogo()"
+                  >
+                    <app-icon name="trash3" /> Remove
+                  </button>
+                }
+                <input
+                  #logoInput
+                  type="file"
+                  hidden
+                  [accept]="logoAccept"
+                  (change)="onLogoPicked(logoInput)"
+                />
+              </div>
+            }
+            @if (logoError(); as message) {
+              <p class="small text-danger logo-error" role="alert">{{ message }}</p>
+            }
+          </div>
+        </div>
+        <div class="form-grid cols-3">
+          <app-form-field label="Shop Name" class="span-2">
+            <input
+              class="form-control"
+              formControlName="shopName"
+              maxlength="100"
+              autocomplete="organization"
+            />
+          </app-form-field>
+          <app-form-field label="Phone">
+            <input
+              class="form-control"
+              formControlName="phone"
+              appMobileInput
+              placeholder="98765 43210"
+            />
+          </app-form-field>
+          <app-form-field label="Email">
+            <input
+              type="email"
+              class="form-control"
+              formControlName="email"
+              maxlength="100"
+              autocomplete="email"
+            />
+          </app-form-field>
+          <app-form-field label="GST Number">
+            <input
+              class="form-control mono"
+              formControlName="gstNumber"
+              maxlength="15"
+              appUppercase
+              placeholder="Optional"
+            />
+          </app-form-field>
+          <app-address-fields />
+        </div>
+      </div>
+      @if (canEditProfile) {
+        <div class="card-footer form-footer">
+          <button type="submit" class="btn btn-primary" [disabled]="submitter.saving()">
+            @if (submitter.saving()) {
+              <span class="spinner" aria-hidden="true"></span> Saving…
+            } @else {
+              <app-icon name="check-circle" /> Save profile
+            }
+          </button>
+        </div>
+      }
+    </form>
+  </section>
+
+  <section class="card">
+    <header class="card-header">
+      <div>
+        <h2 class="card-title"><app-icon name="palette" /> Colour theme</h2>
+        <p class="card-subtitle">
+          Colours of buttons, the side menu and table headings on every counter. Pick a colour from
+          the shop logo, or any colour you like.
+        </p>
+      </div>
+    </header>
+    <div class="card-body">
+      @if (!canEditProfile) {
+        <div class="alert alert-info form-alert" role="note">
+          <app-icon name="info-circle-fill" />
+          <span>Only administrators can change the colour theme.</span>
+        </div>
+      }
+      @if (themeError(); as message) {
+        <div class="alert alert-danger form-alert" role="alert">
+          <app-icon name="exclamation-triangle-fill" /><span>{{ message }}</span>
+        </div>
+      }
+      <div class="theme-groups">
+        <div class="theme-group">
+          <p class="theme-group-label">From the shop logo</p>
+          @if (logoPalette().length) {
+            <div class="theme-swatches">
+              @for (color of logoPalette(); track color) {
+                <button
+                  type="button"
+                  class="theme-swatch"
+                  [class.is-selected]="themeColor() === color"
+                  [attr.aria-pressed]="themeColor() === color"
+                  [attr.aria-label]="'Logo colour ' + color"
+                  [disabled]="!canEditProfile || themeBusy()"
+                  (click)="chooseTheme(color)"
+                >
+                  <span class="theme-swatch-color" [style.background]="color">
+                    @if (themeColor() === color) {
+                      <app-icon name="check-circle-fill" />
+                    }
+                  </span>
+                  <span class="theme-swatch-label mono">{{ color }}</span>
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="small text-muted theme-empty">
+              @if (logoPaletteBusy()) {
+                Reading the logo colours…
+              } @else if (logo()) {
+                The logo has no clear colours (it looks black and white). Choose the default or a
+                custom colour.
+              } @else {
+                Upload a shop logo above to get its colours here.
+              }
+            </p>
+          }
+        </div>
+        <div class="theme-group">
+          <p class="theme-group-label">Other</p>
+          <div class="theme-swatches">
+            <button
+              type="button"
+              class="theme-swatch"
+              [class.is-selected]="!themeColor()"
+              [attr.aria-pressed]="!themeColor()"
+              aria-label="Default colours (teal)"
+              [disabled]="!canEditProfile || themeBusy()"
+              (click)="chooseTheme('')"
+            >
+              <span class="theme-swatch-color" [style.background]="defaultThemeColor">
+                @if (!themeColor()) {
+                  <app-icon name="check-circle-fill" />
+                }
+              </span>
+              <span class="theme-swatch-label">Default</span>
+            </button>
+            <label
+              class="theme-swatch theme-swatch-custom"
+              [class.is-selected]="isCustomTheme()"
+              [class.is-disabled]="!canEditProfile || themeBusy()"
+            >
+              <span
+                class="theme-swatch-color"
+                [style.background]="isCustomTheme() ? themeColor() : null"
+              >
+                @if (isCustomTheme()) {
+                  <app-icon name="check-circle-fill" />
+                } @else {
+                  <app-icon name="plus-lg" />
+                }
+              </span>
+              <span class="theme-swatch-label" [class.mono]="isCustomTheme()">
+                {{ isCustomTheme() ? themeColor() : 'Custom' }}
+              </span>
+              <input
+                #customColor
+                type="color"
+                class="theme-swatch-input"
+                aria-label="Custom colour"
+                [value]="customPickerValue()"
+                [disabled]="!canEditProfile || themeBusy()"
+                (change)="chooseTheme(customColor.value)"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+      @if (themeLooksLikeDanger()) {
+        <p class="small theme-note" role="note">
+          <app-icon name="info-circle-fill" />
+          <span
+            >This red is close to the colour of Delete buttons and error messages, so ordinary
+            buttons may look like warnings. A darker or different logo colour avoids that.</span
+          >
+        </p>
+      }
+    </div>
+  </section>
+
+  @if (dataSourceMode === 'api') {
+    <section class="card">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title"><app-icon name="database" /> Server connection</h2>
+          <p class="card-subtitle">
+            Master data is stored in the database through the Fashion API.
+          </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" (click)="checkServer()">
+          <app-icon name="arrow-clockwise" /> Check again
+        </button>
+      </header>
+      <div class="card-body settings-rows">
+        <div class="settings-row" aria-live="polite">
+          <div>
+            <p class="fw-600">
+              API: <span class="mono">{{ apiBaseUrl }}</span>
+            </p>
+            <p class="small text-muted">
+              @switch (server().state) {
+                @case ('checking') {
+                  Checking…
+                }
+                @case ('up') {
+                  Connected — database is up.
+                }
+                @case ('down') {
+                  {{ server().message }}
+                }
+              }
+            </p>
+          </div>
+          @switch (server().state) {
+            @case ('up') {
+              <span class="badge badge-dot badge-success">Online</span>
+            }
+            @case ('down') {
+              <span class="badge badge-dot badge-danger">Offline</span>
+            }
+            @default {
+              <span class="spinner text-muted" aria-hidden="true"></span>
+            }
+          }
+        </div>
+      </div>
+    </section>
+  } @else {
+    <section class="card">
+      <header class="card-header">
+        <div>
+          <h2 class="card-title"><app-icon name="database" /> Demo data</h2>
+          <p class="card-subtitle">
+            The app currently runs on sample data stored in this browser. These tools help test the
+            screens before the backend is connected.
+          </p>
+        </div>
+      </header>
+      <div class="card-body settings-rows">
+        <div class="settings-row">
+          <div>
+            <p class="fw-600">Simulate API errors</p>
+            <p class="small text-muted">
+              Makes every data request fail so error and retry states can be checked.
+            </p>
+          </div>
+          <label class="switch">
+            <input
+              #errorsToggle
+              type="checkbox"
+              [checked]="mockDb.simulateErrors()"
+              (change)="toggleSimulatedErrors(errorsToggle.checked)"
+            />
+            <span class="visually-hidden">Simulate API errors</span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div>
+            <p class="fw-600">Reset demo data</p>
+            <p class="small text-muted">Restores all master data to the original sample records.</p>
+          </div>
+          <button type="button" class="btn btn-outline-danger btn-sm" (click)="resetDemoData()">
+            <app-icon name="arrow-counterclockwise" /> Reset
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <section class="card">
+    <div class="card-body about">
+      <span class="about-mark" aria-hidden="true">F</span>
+      <div>
+        <p class="fw-600">Fashion — Dress Shop Manager</p>
+        <p class="small text-muted">
+          Phase 1 · Master data. Billing, purchase and reports are planned next.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>

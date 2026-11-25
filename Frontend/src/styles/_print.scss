@@ -1,0 +1,90 @@
+// Printing a bill: Receipt.print() adds `print-receipt` to <body> and calls window.print().
+// Everything except the receipt (<app-receipt class="receipt-print">, a direct child of
+// <body>) is hidden, and the page margins suit 80 mm thermal printers.
+//
+// Printing price labels: LabelSheet.print() adds `print-labels` to <body> (plus an @page rule
+// with the label stock's size and no margins). Only the label sheet (<app-label-sheet>, moved
+// to <body>) is printed.
+//
+// Printing a report: the report page adds `print-report` to <body> (plus an A4 @page rule
+// while the dialog is open). The app chrome and anything marked `.no-print` are hidden, so the
+// page content prints on its own.
+@media print {
+  @page {
+    margin: 3mm 4mm;
+  }
+
+  body.print-receipt {
+    background: #fff !important;
+
+    > :not(.receipt-print) {
+      display: none !important;
+    }
+
+    > .receipt-print {
+      display: block !important;
+    }
+  }
+
+  body.print-labels {
+    // A 50 mm label is narrower than the body's usual min-width (320px); without this the
+    // browser lays the page out wider and shrinks every label to fit.
+    min-width: 0 !important;
+    background: #fff !important;
+
+    > :not(.label-print) {
+      display: none !important;
+    }
+
+    > .label-print {
+      display: block !important;
+    }
+  }
+
+  body.print-report {
+    background: #fff !important;
+
+    app-sidebar,
+    app-header,
+    app-toast-host,
+    app-confirm-host,
+    .skip-link,
+    .drawer-backdrop,
+    .no-print {
+      display: none !important;
+    }
+
+    .app-main {
+      margin: 0 !important;
+      min-height: 0 !important;
+    }
+
+    .app-content {
+      max-width: none !important;
+      padding: 0 !important;
+    }
+
+    .card,
+    .table-wrap {
+      box-shadow: none !important;
+      overflow: visible !important;
+    }
+
+    tr {
+      break-inside: avoid;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+  }
+}
+
+// Shown only on paper (e.g. the report title and period).
+.print-only {
+  display: none !important;
+
+  @media print {
+    display: block !important;
+  }
+}

@@ -1,0 +1,118 @@
+@use 'mixins' as *;
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+
+  @include up(lg) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-title .app-icon {
+  color: var(--c-warning);
+}
+
+.item-list li + li {
+  border-top: 1px solid var(--c-border);
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 16px;
+  color: inherit;
+  text-decoration: none !important;
+
+  &:hover {
+    background: var(--c-surface-2);
+  }
+
+  @include up(md) {
+    padding: 11px 20px;
+  }
+}
+
+.item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.item-title {
+  @include truncate;
+  font-weight: 600;
+}
+
+.item-meta {
+  @include truncate;
+  font-size: var(--fs-xs);
+  color: var(--c-text-3);
+}
+
+.item-side {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.issue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  color: var(--c-text);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  text-decoration: none !important;
+
+  &:hover {
+    border-color: var(--c-primary);
+    background: var(--c-primary-soft);
+  }
+
+  .app-icon {
+    color: var(--c-primary);
+  }
+}
+
+.all-good {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--c-success);
+}
+
+.list-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
