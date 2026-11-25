@@ -4,6 +4,7 @@ import { createApp } from './app.js';
 import { logger } from './common/utils/logger.js';
 import { checkDatabaseConnection, closeDatabase, pool } from './config/database.js';
 import { dbCredentialsHint, env } from './config/env.js';
+import { findFrontendBuild, frontendDir } from './serve-frontend.js';
 
 async function verifyDatabase(): Promise<void> {
   const { host, port, database, user } = env.db;
@@ -38,8 +39,17 @@ function listen(port: number): Promise<Server> {
 async function main(): Promise<void> {
   await verifyDatabase();
   const server = await listen(env.port);
+  const frontend = findFrontendBuild();
+  if (frontend) {
+    logger.info(`Serving the Angular app from ${frontend}`);
+  } else {
+    logger.warn(
+      `No Angular build at ${frontendDir()} — serving the API only. ` +
+        'Run "npm run build" in the project root to build the app.',
+    );
+  }
   logger.info(
-    `Fashion API listening on http://localhost:${env.port} (docs: http://localhost:${env.port}/api/docs)`,
+    `Fashion ${frontend ? 'app' : 'API'} listening on http://localhost:${env.port} (docs: http://localhost:${env.port}/api/docs)`,
   );
 
   let shuttingDown = false;

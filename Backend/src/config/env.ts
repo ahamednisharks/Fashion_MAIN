@@ -29,6 +29,8 @@ const envSchema = z.object({
         .filter(Boolean),
     ),
   LOG_REQUESTS: booleanish.default(true),
+  /** Folder of the Angular build to serve (relative to the working directory). Empty = ../Frontend/dist/fashion/browser. */
+  FRONTEND_DIST: z.string().trim().default(''),
 
   DB_HOST: z.string().min(1).default('localhost'),
   DB_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
@@ -68,6 +70,7 @@ function loadEnv() {
     port: values.PORT,
     corsOrigins: values.CORS_ORIGINS,
     logRequests: values.LOG_REQUESTS && !isTest,
+    frontendDist: values.FRONTEND_DIST ? resolve(process.cwd(), values.FRONTEND_DIST) : '',
     db: {
       host: values.DB_HOST,
       port: values.DB_PORT,

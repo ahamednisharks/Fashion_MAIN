@@ -1,0 +1,6 @@
+# Root-level only: Frontend/ and Backend/ keep their own .gitignore files.
+node_modules/
+dist/
+.env
+*.log
+.claude/

@@ -12,6 +12,7 @@ import { env } from './config/env.js';
 import { API_PREFIX, buildOpenApiDocument } from './config/swagger.js';
 import { requireAccess } from './modules/auth/auth.middleware.js';
 import { API_MODULES } from './routes.js';
+import { findFrontendBuild, serveFrontend } from './serve-frontend.js';
 
 const version = packageVersion();
 
@@ -31,11 +32,24 @@ function swaggerXsrfInterceptor(request: { headers: Record<string, string> }) {
 
 export function createApp(): Express {
   const app = express();
+  const frontend = findFrontendBuild();
 
   app.disable('x-powered-by');
   // Requests forwarded by a local reverse proxy (e.g. the Angular dev server) keep the client IP.
   app.set('trust proxy', 'loopback');
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          // The shop-logo picker decodes the chosen file through a blob: URL before resizing it.
+          'img-src': ["'self'", 'data:', 'blob:'],
+          // Ask browsers to upgrade to HTTPS only when the app is served over HTTPS (secure
+          // cookies); on plain HTTP (e.g. a shop LAN address) it would break every asset request.
+          'upgrade-insecure-requests': env.auth.cookieSecure ? [] : null,
+        },
+      },
+    }),
+  );
   app.use(
     cors({
       origin: env.corsOrigins.includes('*') ? true : env.corsOrigins,
@@ -45,6 +59,11 @@ export function createApp(): Express {
       maxAge: 600,
     }),
   );
+  // Single-service mode: the Angular build is served from this server too (one domain, one port).
+  // Registered before the request log so only API calls are logged, not every JS/CSS file.
+  if (frontend) {
+    serveFrontend(app, frontend);
+  }
   // Registered before the body parser so requests with malformed JSON are logged too.
   app.use(requestLogger);
   app.use(express.json({ limit: '1mb' }));
@@ -70,14 +89,17 @@ export function createApp(): Express {
     }),
   );
 
-  app.get('/', (_req, res) => {
-    res.json({
-      name: 'Fashion API',
-      version,
-      docs: '/api/docs',
-      health: `${API_PREFIX}/health`,
+  // API-only mode (no Angular build): "/" describes the API instead of serving the app.
+  if (!frontend) {
+    app.get('/', (_req, res) => {
+      res.json({
+        name: 'Fashion API',
+        version,
+        docs: '/api/docs',
+        health: `${API_PREFIX}/health`,
+      });
     });
-  });
+  }
 
   app.use(API_PREFIX, csrfProtection({ secure: env.auth.cookieSecure }));
   app.use(API_PREFIX, createApiRouter(API_MODULES, { accessGuard: requireAccess }));
