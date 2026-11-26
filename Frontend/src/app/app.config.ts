@@ -18,6 +18,7 @@ import {
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { provideDataSource } from './core/data-access/provide-data-source';
+import { FaviconService } from './core/layout/favicon';
 import { AppTitleStrategy } from './core/services/page-meta.service';
 import { ThemeService } from './core/theme/theme.service';
 
@@ -43,6 +44,8 @@ export const appConfig: ApplicationConfig = {
     // Shop colour theme: the last one seen applies at once, then the server's copy (not awaited).
     provideAppInitializer(() => {
       void inject(ThemeService).load();
+      // Browser-tab icon: follows the sidebar brand (shop logo or initials, theme colours).
+      inject(FaviconService);
     }),
   ],
 };

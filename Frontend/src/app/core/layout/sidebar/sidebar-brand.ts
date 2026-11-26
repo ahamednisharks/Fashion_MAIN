@@ -13,9 +13,9 @@ import { ShopSettingsService } from '../../data-access/shop-settings.service';
 import { nameInitials } from '../../utils/text';
 
 /** App name shown while the shop has no name. */
-const APP_NAME = 'Fashion';
+export const APP_NAME = 'Fashion';
 /** A logo at least this many times wider than tall usually spells out the shop name itself. */
-const WIDE_LOGO_RATIO = 1.8;
+export const WIDE_LOGO_RATIO = 1.8;
 
 /**
  * The shop's brand at the top of the sidebar: its logo (on a white tile, so any logo shows on
